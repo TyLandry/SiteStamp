@@ -1,6 +1,7 @@
 import LogoutButton from "../components/LogoutButton";
 import ClockInOut from "../components/ClockInClockOut";
 import HoursSummary from "../components/HoursSummary";
+import TimeOffRequests from "../components/TimeOffRequests";
 
 export default function EmployeeDashboard() {
   return (
@@ -12,6 +13,7 @@ export default function EmployeeDashboard() {
       <div className="flex flex-col gap-6">
         <ClockInOut />
         <HoursSummary />
+        <TimeOffRequests />
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ import { createClient } from "@/utils/supabase/client";
 export default function ClockInOut() {
   const [loading, setLoading] = useState(false);
   const [activeEntry, setActiveEntry] = useState<{ id: string; clock_in: string } | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -28,8 +29,26 @@ export default function ClockInOut() {
     setActiveEntry(data);
   }
 
+  function getLocation(): Promise<string | null> {
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        resolve(null);
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          resolve(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+        },
+        () => resolve(null),
+        { timeout: 5000 }
+      );
+    });
+  }
+
   async function handleClockIn() {
     setLoading(true);
+    setLocationError(null);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -39,10 +58,14 @@ export default function ClockInOut() {
       .eq("id", user.id)
       .single();
 
+    const location = await getLocation();
+    if (!location) setLocationError("Could not get location — clocked in without it.");
+
     await supabase.from("time_entries").insert({
       profile_id: user.id,
       org_id: profile?.org_id,
       clock_in: new Date().toISOString(),
+      clock_in_location: location,
     });
 
     await checkActiveEntry();
@@ -52,10 +75,17 @@ export default function ClockInOut() {
   async function handleClockOut() {
     if (!activeEntry) return;
     setLoading(true);
+    setLocationError(null);
+
+    const location = await getLocation();
+    if (!location) setLocationError("Could not get location — clocked out without it.");
 
     await supabase
       .from("time_entries")
-      .update({ clock_out: new Date().toISOString() })
+      .update({
+        clock_out: new Date().toISOString(),
+        clock_out_location: location,
+      })
       .eq("id", activeEntry.id);
 
     setActiveEntry(null);
@@ -87,6 +117,7 @@ export default function ClockInOut() {
           {loading ? "..." : "Clock In"}
         </button>
       )}
+      {locationError && <p className="text-amber-600 text-sm mt-2">{locationError}</p>}
     </div>
   );
 }
