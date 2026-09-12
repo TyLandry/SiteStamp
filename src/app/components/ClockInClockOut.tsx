@@ -63,16 +63,27 @@ export default function ClockInOut() {
   }
 
   return (
-    <div style={{ marginTop: 20, padding: 16, border: "1px solid #ccc" }}>
+    <div className="border border-gray-300 rounded p-4">
+      <h2 className="font-semibold mb-3">Clock In / Out</h2>
       {activeEntry ? (
-        <>
-          <p>Clocked in since: {new Date(activeEntry.clock_in).toLocaleTimeString()}</p>
-          <button onClick={handleClockOut} disabled={loading}>
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-gray-600">
+            Clocked in since {new Date(activeEntry.clock_in).toLocaleTimeString()}
+          </p>
+          <button
+            onClick={handleClockOut}
+            disabled={loading}
+            className="bg-gray-800 text-white rounded px-4 py-2 text-sm disabled:opacity-50"
+          >
             {loading ? "..." : "Clock Out"}
           </button>
-        </>
+        </div>
       ) : (
-        <button onClick={handleClockIn} disabled={loading}>
+        <button
+          onClick={handleClockIn}
+          disabled={loading}
+          className="bg-gray-800 text-white rounded px-4 py-2 text-sm disabled:opacity-50"
+        >
           {loading ? "..." : "Clock In"}
         </button>
       )}
