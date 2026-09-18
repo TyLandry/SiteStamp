@@ -2,6 +2,7 @@ import LogoutButton from "../components/LogoutButton";
 import ClockInOut from "../components/ClockInClockOut";
 import HoursSummary from "../components/HoursSummary";
 import TimeOffRequests from "../components/TimeOffRequests";
+import TaxInfo from "../components/TaxInfo";
 
 export default function EmployeeDashboard() {
   return (
@@ -14,6 +15,7 @@ export default function EmployeeDashboard() {
         <ClockInOut />
         <HoursSummary />
         <TimeOffRequests />
+        <TaxInfo />
       </div>
     </div>
   );
