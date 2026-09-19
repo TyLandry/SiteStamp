@@ -1,5 +1,8 @@
 import LogoutButton from "../components/LogoutButton";
 import EmployerHoursView from "../components/EmployerHoursView";
+import InviteEmployee from "../components/InviteEmployee";
+import EmployeeList from "../components/EmployeeList";
+import TimeOffApprovals from "../components/TimeOffApprovals";
 
 export default function AdminDashboard() {
   return (
@@ -9,6 +12,9 @@ export default function AdminDashboard() {
         <LogoutButton />
       </div>
       <div className="flex flex-col gap-6">
+        <InviteEmployee />
+        <EmployeeList />
+        <TimeOffApprovals />
         <EmployerHoursView />
       </div>
     </div>
