@@ -7,6 +7,8 @@ type Entry = {
   id: string;
   clock_in: string;
   clock_out: string | null;
+  clock_in_location: string | null;
+  clock_out_location: string | null;
   profile_id: string;
   full_name: string | null;
 };
@@ -26,7 +28,9 @@ export default function EmployerHoursView() {
 
     let query = supabase
       .from("time_entries")
-      .select("id, clock_in, clock_out, profile_id, profiles(full_name)")
+      .select(
+        "id, clock_in, clock_out, clock_in_location, clock_out_location, profile_id, profiles(full_name)"
+      )
       .order("clock_in", { ascending: false });
 
     if (range !== "all") {
@@ -47,6 +51,8 @@ export default function EmployerHoursView() {
       id: row.id,
       clock_in: row.clock_in,
       clock_out: row.clock_out,
+      clock_in_location: row.clock_in_location,
+      clock_out_location: row.clock_out_location,
       profile_id: row.profile_id,
       full_name: row.profiles?.full_name ?? "Unknown",
     }));
@@ -81,6 +87,8 @@ export default function EmployerHoursView() {
               <th className="text-left py-2 font-medium">Employee</th>
               <th className="text-left py-2 font-medium">Clock In</th>
               <th className="text-left py-2 font-medium">Clock Out</th>
+              <th className="text-left py-2 font-medium">Clock In Location</th>
+              <th className="text-left py-2 font-medium">Clock Out Location</th>
               <th className="text-left py-2 font-medium">Status</th>
             </tr>
           </thead>
@@ -92,6 +100,8 @@ export default function EmployerHoursView() {
                 <td className="py-2">
                   {e.clock_out ? new Date(e.clock_out).toLocaleString() : "—"}
                 </td>
+                <td className="py-2 text-xs">{e.clock_in_location ?? "—"}</td>
+                <td className="py-2 text-xs">{e.clock_out_location ?? "—"}</td>
                 <td className="py-2">{e.clock_out ? "Complete" : "Active"}</td>
               </tr>
             ))}
