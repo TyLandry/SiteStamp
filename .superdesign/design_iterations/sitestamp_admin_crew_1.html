@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Crew &amp; wages · SiteStamp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="sitestamp_redline.css">
+<style>
+.crew-grid{display:grid;grid-template-columns:minmax(0,1fr) 384px;gap:24px;align-items:start}
+.list-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:4px 4px 8px}
+.data td.id{width:40%}
+.wage{font-weight:600;white-space:nowrap}
+.data td.today{white-space:nowrap}
+.list-wrap{overflow-x:auto}
+@media (min-width:641px) and (max-width:1023px){.data th:nth-child(2),.data td.type{display:none}}
+.wage .u{color:var(--faint);font-weight:400;font-size:12px}
+tr.editing td{background:var(--red-50)}
+.edit{display:flex;gap:8px;align-items:center;justify-content:flex-end}
+.money{position:relative;width:112px}
+.money span{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--faint)}
+.money .input{width:100%;padding-left:22px;text-align:right}
+.hint{font-size:12px;color:var(--muted);padding:6px 12px 2px;text-align:right}
+.form{display:flex;flex-direction:column;gap:16px;padding:4px var(--card-pad) var(--card-pad)}
+.form p{font-size:13px;color:var(--muted)}
+.inv-acts{display:flex;gap:4px;flex:none}
+@media (max-width:1023px){.crew-grid{grid-template-columns:1fr}.invites{order:-1}}
+@media (max-width:640px){
+  table.data thead{display:none}
+  table.data,table.data tbody{display:block}
+  table.data tr{display:grid;grid-template-columns:1fr auto auto;column-gap:8px;align-items:center;padding:10px 8px;border-top:1px solid var(--rule)}
+  table.data tr:first-child{border-top:0}
+  table.data td{display:block;border:0;height:auto;padding:0}
+  table.data td.type,table.data td.today{grid-row:2;grid-column:1 / 2;font-size:13px;color:var(--muted);display:inline}
+  table.data td.today{grid-row:3}
+  table.data td.id{width:auto}
+  table.data td.wage{grid-column:2;grid-row:1}
+  table.data td.act{grid-column:3;grid-row:1 / 3}
+  tr.editing{grid-template-columns:1fr}
+  tr.editing td.wage,tr.editing td.act{grid-column:1;grid-row:auto;padding-top:10px}
+  .edit{justify-content:flex-start}
+  .money{flex:1}
+  .hint{text-align:left;padding:6px 0 0}
+}
+</style></head><body>
+<!-- Sample data. Wages are $/h; nothing is summed on this screen. -->
+<div class="app">
+  <aside class="side" aria-label="Main navigation">
+    <a class="brand" href="sitestamp_admin_today_1.html"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="1.5" y="1.5" width="19" height="19" rx="2" fill="none" stroke="#1c2830" stroke-width="1.6"/><path d="M1.5 15h19M15 15v5.5" stroke="#1c2830" stroke-width="1.6"/><path d="M5 11.5 11 4.5l6 7z" fill="#d23a2a"/></svg>SiteStamp</a>
+    <a class="nav-item" href="sitestamp_admin_today_1.html"><svg class="i" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3"/></svg>Today</a>
+    <a class="nav-item" href="#" aria-current="page"><svg class="i" viewBox="0 0 16 16"><circle cx="6" cy="5.5" r="2.5"/><path d="M1.5 14c.6-2.6 2.3-4 4.5-4s3.9 1.4 4.5 4M10.5 3.2a2.4 2.4 0 0 1 0 4.6M12.2 10.4c1.2.6 2 1.8 2.3 3.6"/></svg>Crew &amp; wages</a>
+    <a class="nav-item" href="sitestamp_admin_time_1.html"><svg class="i" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.25"/><path d="M8 4.5V8l2.5 1.5"/></svg>Time entries<span class="count">1</span></a>
+    <a class="nav-item" href="#"><svg class="i" viewBox="0 0 16 16"><path d="M2 9.5 3.6 3h8.8L14 9.5V13H2z"/><path d="M2 9.5h3.5l1 1.5h3l1-1.5H14"/></svg>Time off<span class="count">2</span></a>
+    <div class="me"><span class="av t-lg">KH</span><div>Kim Huang<div class="small muted">Owner</div></div></div>
+  </aside>
+  <header class="top">
+    <a class="brand" href="sitestamp_admin_today_1.html"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="1.5" y="1.5" width="19" height="19" rx="2" fill="none" stroke="#1c2830" stroke-width="1.6"/><path d="M1.5 15h19M15 15v5.5" stroke="#1c2830" stroke-width="1.6"/><path d="M5 11.5 11 4.5l6 7z" fill="#d23a2a"/></svg>SiteStamp</a>
+    <div class="crumb">Northline Builders / <b>Crew &amp; wages</b></div>
+    <button class="switch" type="button" style="background:none;border-top:0;border-right:0;border-bottom:0">Northline Builders<small>3 job sites · 7 crew</small><svg class="i" viewBox="0 0 16 16"><path d="M4.5 6.5 8 10l3.5-3.5"/></svg></button>
+  </header>
+
+  <main class="main">
+    <div class="title-row">
+      <div><h1>Crew &amp; wages</h1><p class="finding">7 crew · 6 employees, 1 contractor · 1 invite waiting</p></div>
+      <a class="btn primary" href="#invite">Invite to crew</a>
+    </div>
+
+    <div class="crew-grid">
+      <section class="list-wrap" aria-labelledby="crew-h">
+        <h2 id="crew-h" class="panel-h" style="font-size:16px;font-weight:600;padding-bottom:4px">Crew</h2>
+        <table class="data">
+          <thead><tr><th>Name</th><th>Type</th><th>Today</th><th class="num">Hourly wage</th><th><span class="sr" style="position:absolute;left:-9999px">Actions</span></th></tr></thead>
+          <tbody>
+            <tr><td class="id"><div class="person"><span class="av t-ar">AR</span><div class="n">Aisha Rahman<small>aisha.rahman@northlinebuilders.ca</small></div></div></td><td class="type">Employee</td><td class="today"><span class="muted">Not in yet</span></td><td class="num wage">$30.25<span class="u"> /h</span></td><td class="act num"><button class="btn text">Edit</button></td></tr>
+            <tr><td class="id"><div class="person"><span class="av t-dk">DK</span><div class="n">Dale Kowalski<small>dale.k@northlinebuilders.ca</small></div></div></td><td class="type">Employee</td><td class="today">S-01 · on site</td><td class="num wage">$31.75<span class="u"> /h</span></td><td class="act num"><button class="btn text">Edit</button></td></tr>
+            <tr class="editing"><td class="id"><div class="person"><span class="av t-jt">JT</span><div class="n">Jenna Tremblay<small>jenna.tremblay@northlinebuilders.ca</small></div></div></td><td class="type">Employee</td><td class="today">S-02 · on site</td>
+              <td class="num wage" colspan="2"><div class="edit"><label class="money"><span>$</span><input class="input" inputmode="decimal" value="37.00" aria-label="Hourly wage for Jenna Tremblay"></label><button class="btn primary">Save</button><button class="btn text">Cancel</button></div><div class="hint">Was $36.25 /h. Only employers can change wages.</div></td></tr>
+            <tr><td class="id"><div class="person"><span class="av t-lg">LG</span><div class="n">Luc Gagnon<small>luc.gagnon@northlinebuilders.ca</small></div></div></td><td class="type">Employee</td><td class="today"><span class="pill ok">Time off</span></td><td class="num wage">$29.50<span class="u"> /h</span></td><td class="act num"><button class="btn text">Edit</button></td></tr>
+            <tr><td class="id"><div class="person"><span class="av t-mb">MB</span><div class="n">Marco Bellini<small>marco.bellini@northlinebuilders.ca</small></div></div></td><td class="type">Employee</td><td class="today">S-01 · on site</td><td class="num wage">$38.50<span class="u"> /h</span></td><td class="act num"><button class="btn text">Edit</button></td></tr>
+            <tr><td class="id"><div class="person"><span class="av t-ps">PS</span><div class="n">Priya Sandhu<small>priya.sandhu@northlinebuilders.ca</small></div></div></td><td class="type">Employee</td><td class="today">S-01 · on site</td><td class="num wage">$34.00<span class="u"> /h</span></td><td class="act num"><button class="btn text">Edit</button></td></tr>
+            <tr><td class="id"><div class="person"><span class="av t-so">SO</span><div class="n">Sam Okafor<small>Contractor · GST registered</small></div></div></td><td class="type">Contractor</td><td class="today">S-02 · on site</td><td class="num wage">$42.00<span class="u"> /h</span></td><td class="act num"><button class="btn text">Edit</button></td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <div class="stack invites">
+        <section class="panel" aria-labelledby="pend-h">
+          <div class="panel-h"><h2 id="pend-h">Waiting to join</h2><span class="small muted">1 invite</span></div>
+          <div class="list-row"><div class="person"><span class="av t-tw">TW</span><div class="n">Tom Whitecloud<small>Sent Oct 19 · link expired</small></div></div>
+            <div class="inv-acts"><button class="btn">Resend</button><button class="btn text danger">Revoke</button></div></div>
+        </section>
+        <section class="panel" id="invite" aria-labelledby="inv-h">
+          <div class="panel-h"><h2 id="inv-h">Invite to crew</h2></div>
+          <form class="form" onsubmit="return false">
+            <p>We email them a link to set a password. There's no public sign-up.</p>
+            <div class="field"><label for="fn">Full name</label><input class="input" id="fn" autocomplete="off"></div>
+            <div class="field"><label for="em">Email</label><input class="input" id="em" type="email" autocomplete="off"></div>
+            <div class="field"><label for="wt">Worker type</label><select class="select" id="wt"><option>Employee</option><option>Contractor</option></select></div>
+            <button class="btn primary" type="submit">Send invite</button>
+          </form>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+<nav class="bottom" aria-label="Main">
+  <a href="sitestamp_admin_today_1.html"><svg class="i" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3"/></svg>Today</a>
+  <a href="#" aria-current="page"><svg class="i" viewBox="0 0 16 16"><circle cx="6" cy="5.5" r="2.5"/><path d="M1.5 14c.6-2.6 2.3-4 4.5-4s3.9 1.4 4.5 4M10.5 3.2a2.4 2.4 0 0 1 0 4.6M12.2 10.4c1.2.6 2 1.8 2.3 3.6"/></svg>Crew</a>
+  <a href="sitestamp_admin_time_1.html"><svg class="i" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.25"/><path d="M8 4.5V8l2.5 1.5"/></svg>Time<span class="dot">1</span></a>
+  <a href="#"><svg class="i" viewBox="0 0 16 16"><path d="M2 9.5 3.6 3h8.8L14 9.5V13H2z"/><path d="M2 9.5h3.5l1 1.5h3l1-1.5H14"/></svg>Time off<span class="dot">2</span></a>
+</nav>
+</body></html>
