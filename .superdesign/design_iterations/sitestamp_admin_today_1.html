@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Today · SiteStamp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="sitestamp_redline.css">
+<style>
+.today{display:grid;grid-template-columns:minmax(0,1fr) 384px;gap:24px;align-items:start}
+@media (max-width:1023px){.today{grid-template-columns:1fr}}
+.week .list-row:last-child{font-weight:600}
+</style></head><body>
+<!-- Sample data (Northline Builders, Wed Oct 21 2026, 11:40 am). Bars: left = (clock-in − 6:00) / 720 min; now-line = 340/720 = 47.22%. -->
+<div class="app">
+  <aside class="side" aria-label="Main navigation">
+    <a class="brand" href="#"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="1.5" y="1.5" width="19" height="19" rx="2" fill="none" stroke="#1c2830" stroke-width="1.6"/><path d="M1.5 15h19M15 15v5.5" stroke="#1c2830" stroke-width="1.6"/><path d="M5 11.5 11 4.5l6 7z" fill="#d23a2a"/></svg>SiteStamp</a>
+    <a class="nav-item" href="#" aria-current="page"><svg class="i" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3"/></svg>Today</a>
+    <a class="nav-item" href="sitestamp_admin_crew_1.html"><svg class="i" viewBox="0 0 16 16"><circle cx="6" cy="5.5" r="2.5"/><path d="M1.5 14c.6-2.6 2.3-4 4.5-4s3.9 1.4 4.5 4M10.5 3.2a2.4 2.4 0 0 1 0 4.6M12.2 10.4c1.2.6 2 1.8 2.3 3.6"/></svg>Crew &amp; wages</a>
+    <a class="nav-item" href="sitestamp_admin_time_1.html"><svg class="i" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.25"/><path d="M8 4.5V8l2.5 1.5"/></svg>Time entries<span class="count">1</span></a>
+    <a class="nav-item" href="#"><svg class="i" viewBox="0 0 16 16"><path d="M2 9.5 3.6 3h8.8L14 9.5V13H2z"/><path d="M2 9.5h3.5l1 1.5h3l1-1.5H14"/></svg>Time off<span class="count">2</span></a>
+    <div class="me"><span class="av t-lg">KH</span><div>Kim Huang<div class="small muted">Owner</div></div></div>
+  </aside>
+  <header class="top">
+    <a class="brand" href="#"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="1.5" y="1.5" width="19" height="19" rx="2" fill="none" stroke="#1c2830" stroke-width="1.6"/><path d="M1.5 15h19M15 15v5.5" stroke="#1c2830" stroke-width="1.6"/><path d="M5 11.5 11 4.5l6 7z" fill="#d23a2a"/></svg>SiteStamp</a>
+    <div class="crumb">Northline Builders / <b>Today</b></div>
+    <button class="switch" type="button" style="background:none;border-top:0;border-right:0;border-bottom:0">Northline Builders<small>3 job sites · 7 crew</small><svg class="i" viewBox="0 0 16 16"><path d="M4.5 6.5 8 10l3.5-3.5"/></svg></button>
+  </header>
+
+  <main class="main">
+    <div class="title-row">
+      <div><h1>Today</h1><p class="finding">Wed Oct 21 · 5 of 7 on site · <b>3 need your call</b></p></div>
+      <span class="stamp-time">Updated 11:40 am</span>
+    </div>
+
+    <div class="today">
+      <div class="stack">
+        <section class="cloud" aria-labelledby="needs-h">
+          <div class="cloud-head"><h2 id="needs-h">Needs your call</h2><span class="small muted">3 open</span></div>
+          <div class="rev">
+            <span class="delta" aria-label="Revision 1"><svg viewBox="0 0 24 22"><path d="M12 1.5 22.5 20.5h-21z"/></svg><span>1</span></span>
+            <div><div class="who">Dale Kowalski clocked in 2.4 km from S-01</div><div class="what">Maple Ridge Duplex · 7:15 am · 43.4336, −80.4765</div></div>
+            <div class="acts"><a class="btn" href="sitestamp_admin_time_1.html">Review entry</a></div>
+          </div>
+          <div class="rev">
+            <span class="delta" aria-label="Revision 2"><svg viewBox="0 0 24 22"><path d="M12 1.5 22.5 20.5h-21z"/></svg><span>2</span></span>
+            <div><div class="who">Aisha Rahman · time off</div><div class="what">Mon Oct 26 – Tue Oct 27 · 2 days · asked Oct 20</div></div>
+            <div class="acts"><button class="btn primary">Approve</button><button class="btn">Deny</button></div>
+          </div>
+          <div class="rev">
+            <span class="delta" aria-label="Revision 3"><svg viewBox="0 0 24 22"><path d="M12 1.5 22.5 20.5h-21z"/></svg><span>3</span></span>
+            <div><div class="who">Sam Okafor · time off</div><div class="what">Tue Nov 3 · 1 day · asked Oct 21</div></div>
+            <div class="acts"><button class="btn primary">Approve</button><button class="btn">Deny</button></div>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="s01">
+          <div class="panel-h"><h2 id="s01">Maple Ridge Duplex</h2><span class="sheet-no">S-01 · 3 ON SITE</span></div>
+          <div class="axis" aria-hidden="true"><span></span><div class="ticks"><span>6 am</span><span>9 am</span><span>12 pm</span><span>3 pm</span><span>6 pm</span></div></div>
+          <div class="crew"><div class="person"><span class="av t-mb">MB</span><div class="n">Marco Bellini<small>In 6:58 am · 4 h 42 m</small></div></div>
+            <div class="track" role="img" aria-label="6:58 am to now"><span class="bar live" style="left:8.06%;right:52.78%"></span><span class="now" style="left:47.22%"></span></div></div>
+          <div class="crew"><div class="person"><span class="av t-ps">PS</span><div class="n">Priya Sandhu<small>In 7:02 am · 4 h 38 m</small></div></div>
+            <div class="track" role="img" aria-label="7:02 am to now"><span class="bar live" style="left:8.61%;right:52.78%"></span><span class="now" style="left:47.22%"></span></div></div>
+          <div class="crew"><div class="person"><span class="av t-dk">DK</span><div class="n">Dale Kowalski<small>In 7:15 am · 4 h 25 m · Δ1</small></div></div>
+            <div class="track" role="img" aria-label="7:15 am to now, clocked in off site"><svg class="flag" style="left:calc(10.42% - 17px)" viewBox="0 0 14 13" aria-hidden="true"><path d="M7 1 13 12H1z" fill="#d23a2a"/></svg><span class="bar live" style="left:10.42%;right:52.78%"></span><span class="now" style="left:47.22%"></span></div></div>
+          <div class="title-block"><span>2041 Maple Ridge Rd, Kitchener</span><span>So far today <b>13 h 45 m</b></span></div>
+        </section>
+
+        <section class="panel" aria-labelledby="s02">
+          <div class="panel-h"><h2 id="s02">Elm St. Reno</h2><span class="sheet-no">S-02 · 2 ON SITE</span></div>
+          <div class="axis" aria-hidden="true"><span></span><div class="ticks"><span>6 am</span><span>9 am</span><span>12 pm</span><span>3 pm</span><span>6 pm</span></div></div>
+          <div class="crew"><div class="person"><span class="av t-jt">JT</span><div class="n">Jenna Tremblay<small>In 7:30 am · 4 h 10 m</small></div></div>
+            <div class="track" role="img" aria-label="7:30 am to now"><span class="bar live" style="left:12.5%;right:52.78%"></span><span class="now" style="left:47.22%"></span></div></div>
+          <div class="crew"><div class="person"><span class="av t-so">SO</span><div class="n">Sam Okafor<small>In 7:31 am · 4 h 09 m</small></div></div>
+            <div class="track" role="img" aria-label="7:31 am to now"><span class="bar live" style="left:12.64%;right:52.78%"></span><span class="now" style="left:47.22%"></span></div></div>
+          <div class="title-block"><span>118 Elm St, Waterloo</span><span>So far today <b>8 h 19 m</b></span></div>
+        </section>
+
+        <section class="panel" aria-labelledby="s03">
+          <div class="panel-h"><h2 id="s03">Riverside Garage</h2><span class="sheet-no">S-03 · NOBODY TODAY</span></div>
+          <div class="empty">No crew clocked in here today.</div>
+          <div class="title-block"><span>7 Riverside Dr, Cambridge</span><span>So far today <b>0 h 00 m</b></span></div>
+        </section>
+      </div>
+
+      <div class="stack">
+        <section class="panel" aria-labelledby="notin">
+          <div class="panel-h"><h2 id="notin">Not in today</h2><span class="small muted">2 of 7</span></div>
+          <div class="list-row"><div class="person"><span class="av t-lg">LG</span>Luc Gagnon</div><span class="pill ok">Time off</span></div>
+          <div class="list-row"><div class="person"><span class="av t-ar">AR</span>Aisha Rahman</div><span class="pill">No clock-in yet</span></div>
+        </section>
+        <section class="panel" aria-labelledby="inv">
+          <div class="panel-h"><h2 id="inv">Invites</h2><a class="small" href="sitestamp_admin_crew_1.html">Crew</a></div>
+          <div class="list-row"><div class="person"><span class="av t-tw">TW</span><div>Tom Whitecloud<div class="small muted">Sent Oct 19 · link expired</div></div></div><button class="btn">Resend</button></div>
+        </section>
+        <section class="panel week" aria-labelledby="wk">
+          <div class="panel-h"><h2 id="wk">Hours this week</h2><span class="small muted">Oct 19–25</span></div>
+          <div class="list-row"><span>Mon Oct 19</span><span class="num">58 h 16 m</span></div>
+          <div class="list-row"><span>Tue Oct 20</span><span class="num">58 h 21 m</span></div>
+          <div class="list-row"><span>Wed Oct 21 <span class="muted">so far</span></span><span class="num">22 h 04 m</span></div>
+          <div class="list-row"><span>Week so far</span><span class="num">138 h 41 m</span></div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+<nav class="bottom" aria-label="Main">
+  <a href="#" aria-current="page"><svg class="i" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3"/></svg>Today</a>
+  <a href="sitestamp_admin_crew_1.html"><svg class="i" viewBox="0 0 16 16"><circle cx="6" cy="5.5" r="2.5"/><path d="M1.5 14c.6-2.6 2.3-4 4.5-4s3.9 1.4 4.5 4M10.5 3.2a2.4 2.4 0 0 1 0 4.6M12.2 10.4c1.2.6 2 1.8 2.3 3.6"/></svg>Crew</a>
+  <a href="sitestamp_admin_time_1.html"><svg class="i" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.25"/><path d="M8 4.5V8l2.5 1.5"/></svg>Time<span class="dot">1</span></a>
+  <a href="#"><svg class="i" viewBox="0 0 16 16"><path d="M2 9.5 3.6 3h8.8L14 9.5V13H2z"/><path d="M2 9.5h3.5l1 1.5h3l1-1.5H14"/></svg>Time off<span class="dot">2</span></a>
+</nav>
+</body></html>

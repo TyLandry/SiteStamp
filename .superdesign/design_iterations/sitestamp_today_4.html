@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=390">
+<title>SiteStamp · Today (Site Board)</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--steel:#e6e8ea;--flap:#111315;--white:#f4f4f2;--muted:#4f565c;--amber:#e3a21a;--red:#b0473c;--rule:#d3d7da}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:390px;height:844px;overflow:hidden}
+body{background:var(--steel);color:#14181b;font:400 14px/20px Barlow,system-ui,sans-serif;font-variant-numeric:tabular-nums}
+header{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid var(--rule)}
+.mark{font:700 18px "Barlow Condensed";letter-spacing:.04em}
+.org{font-size:13px;color:var(--muted)}
+.title{padding:16px 16px 0;display:flex;justify-content:space-between;align-items:flex-end}
+h1{font-size:24px;line-height:28px;font-weight:600}
+.sub{color:var(--muted)}
+.count{display:flex;gap:3px;align-items:center}
+.cell{width:30px;height:40px;background:var(--flap);color:var(--white);border-radius:3px;display:grid;place-items:center;font:700 26px "Barlow Condensed";position:relative}
+.cell::after{content:"";position:absolute;left:0;right:0;top:50%;border-top:1px solid #000}
+.slash{font:600 22px "Barlow Condensed";color:var(--muted);padding:0 2px}
+.board{margin:16px 16px 0;background:var(--flap);border-radius:6px;padding:6px 0;color:var(--white)}
+.bh,.br{display:grid;grid-template-columns:1.3fr .9fr 56px 52px;gap:8px;align-items:center;padding:0 12px}
+.bh{height:30px;font:600 12px Barlow;color:#a9b0b5}
+.br{height:46px;border-top:1px solid #23272a;font:600 17px "Barlow Condensed";letter-spacing:.02em}
+.br .t{text-align:right}
+.br .site{color:#c9ced1;font-weight:500}
+.lamp{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.late{color:var(--amber)}
+.out{color:#d98a80}
+.note{margin:12px 16px 0;background:#fff;border-radius:6px;padding:12px;border:1px solid var(--rule)}
+.note h2{font-size:15px;font-weight:600}
+.note .r{display:flex;justify-content:space-between;align-items:center;height:44px;border-top:1px solid #eceef0}
+.note .r:first-of-type{border-top:0}
+button{height:34px;padding:0 12px;border-radius:4px;border:1px solid #14181b;background:#14181b;color:#fff;font:600 13px Barlow}
+nav{position:absolute;left:0;width:390px;bottom:0;height:72px;background:#fff;border-top:1px solid var(--rule);display:grid;grid-template-columns:repeat(4,1fr);padding:8px 8px 20px}
+nav a{display:grid;place-items:center;font-size:11px;color:var(--muted);text-decoration:none;border-radius:6px}
+nav a.on{background:#fbf1dc;color:#7a5409;font-weight:600}
+</style></head><body>
+<header><div class="mark">SITESTAMP</div><div class="org">Northline Builders ▾</div></header>
+<div class="title"><div><h1>On site now</h1><p class="sub">Wed Oct 21 · 11:40 am</p></div>
+  <div class="count" aria-label="5 of 7"><span class="cell">5</span><span class="slash">/</span><span class="cell">7</span></div></div>
+<div class="board" role="table" aria-label="Crew board">
+  <div class="bh" role="row"><span>Crew</span><span>Site</span><span style="text-align:right">In</span><span style="text-align:right">Hrs</span></div>
+  <div class="br" role="row"><span>MARCO B.</span><span class="site">S-01</span><span class="t">06:58</span><span class="t">4.70</span></div>
+  <div class="br" role="row"><span>PRIYA S.</span><span class="site">S-01</span><span class="t">07:02</span><span class="t">4.63</span></div>
+  <div class="br late" role="row"><span><i class="lamp" style="background:var(--amber)"></i>DALE K.</span><span class="site">2.4 KM</span><span class="t">07:15</span><span class="t">4.42</span></div>
+  <div class="br" role="row"><span>JENNA T.</span><span class="site">S-02</span><span class="t">07:30</span><span class="t">4.17</span></div>
+  <div class="br" role="row"><span>SAM O.</span><span class="site">S-02</span><span class="t">07:31</span><span class="t">4.15</span></div>
+  <div class="br out" role="row"><span>AISHA R.</span><span class="site">—</span><span class="t">NOT IN</span><span class="t">—</span></div>
+  <div class="br out" role="row"><span>LUC G.</span><span class="site">OFF</span><span class="t">—</span><span class="t">—</span></div>
+</div>
+<div class="note"><h2>Time off waiting</h2>
+  <div class="r"><span>Aisha Rahman · Oct 26–27</span><button>Review</button></div>
+  <div class="r"><span>Sam Okafor · Nov 3</span><button>Review</button></div>
+</div>
+<nav aria-label="Main"><a class="on" href="#">Today</a><a href="#">Crew</a><a href="#">Time</a><a href="#">Requests</a></nav>
+</body></html>

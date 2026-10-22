@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=390">
+<title>SiteStamp · Today (Category standard)</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f8fafc;--card:#fff;--ink:#0f172a;--muted:#64748b;--blue:#2563eb;--rule:#e2e8f0}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:390px;height:844px;overflow:hidden}
+body{background:var(--bg);color:var(--ink);font:400 14px/20px Inter,system-ui,sans-serif;font-variant-numeric:tabular-nums}
+header{height:56px;background:#fff;border-bottom:1px solid var(--rule);display:flex;align-items:center;justify-content:space-between;padding:0 16px}
+.mark{font-weight:700;font-size:16px}
+.org{font-size:13px;color:var(--muted)}
+.title{padding:16px}
+h1{font-size:22px;font-weight:700}
+.sub{color:var(--muted)}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 16px}
+.kpi{background:#fff;border:1px solid var(--rule);border-radius:12px;padding:14px}
+.kpi .l{font-size:13px;color:var(--muted)}
+.kpi .v{font-size:24px;font-weight:600;margin-top:4px}
+.card{margin:16px 16px 0;background:#fff;border:1px solid var(--rule);border-radius:12px;padding:4px 14px}
+.card h2{font-size:15px;font-weight:600;padding:10px 0 4px}
+.r{display:flex;justify-content:space-between;align-items:center;height:48px;border-top:1px solid #f1f5f9}
+.r:first-of-type{border-top:0}
+.r small{display:block;color:var(--muted);font-size:12px;line-height:16px}
+.btn{height:32px;padding:0 12px;border-radius:8px;background:var(--blue);color:#fff;border:0;font:600 13px Inter}
+.pill{font-size:12px;padding:2px 8px;border-radius:999px;background:#fef3c7;color:#92400e}
+nav{position:absolute;left:0;width:390px;bottom:0;height:72px;background:#fff;border-top:1px solid var(--rule);display:grid;grid-template-columns:repeat(4,1fr);padding:8px 8px 20px}
+nav a{display:grid;place-items:center;font-size:11px;color:var(--muted);text-decoration:none}
+nav a.on{color:var(--blue);font-weight:600}
+</style></head><body>
+<header><div class="mark">SiteStamp</div><div class="org">Northline Builders ▾</div></header>
+<div class="title"><h1>Dashboard</h1><p class="sub">Wednesday, October 21</p></div>
+<div class="kpis">
+  <div class="kpi"><div class="l">On site</div><div class="v">5 / 7</div></div>
+  <div class="kpi"><div class="l">Hours today</div><div class="v">22.1</div></div>
+  <div class="kpi"><div class="l">Time-off requests</div><div class="v">2</div></div>
+  <div class="kpi"><div class="l">Location flags</div><div class="v">1</div></div>
+</div>
+<div class="card"><h2>Pending approvals</h2>
+  <div class="r"><div>Aisha Rahman<small>Oct 26 – Oct 27</small></div><button class="btn">Approve</button></div>
+  <div class="r"><div>Sam Okafor<small>Nov 3</small></div><button class="btn">Approve</button></div>
+</div>
+<div class="card"><h2>Clocked in</h2>
+  <div class="r"><div>Marco Bellini<small>Maple Ridge Duplex</small></div><span>6:58 AM</span></div>
+  <div class="r"><div>Priya Sandhu<small>Maple Ridge Duplex</small></div><span>7:02 AM</span></div>
+  <div class="r"><div>Dale Kowalski<small>Maple Ridge Duplex</small></div><span class="pill">Off-site</span></div>
+  <div class="r"><div>Jenna Tremblay<small>Elm St. Reno</small></div><span>7:30 AM</span></div>
+</div>
+<nav aria-label="Main"><a class="on" href="#">Dashboard</a><a href="#">Team</a><a href="#">Timesheets</a><a href="#">Requests</a></nav>
+</body></html>

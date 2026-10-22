@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=390">
+<title>SiteStamp · Today (Trailer Board)</title>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--board:#fafbfa;--ink:#15191c;--muted:#5b6268;--rule:#e2e5e7;--blue:#1f5fbf;--blue-tint:#e8f0fb;--red:#c4302b;--red-tint:#fdecea;--green:#247b50}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:390px;height:844px;overflow:hidden}
+body{background:var(--board);color:var(--ink);font:400 14px/20px "Public Sans",system-ui,sans-serif;font-variant-numeric:tabular-nums}
+header{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid var(--rule)}
+.mark{display:flex;gap:8px;align-items:center;font-weight:700;font-size:16px}
+.org{font-size:13px;color:var(--muted)}
+.title{padding:16px 16px 0}
+h1{font-size:24px;line-height:28px;font-weight:700;letter-spacing:-.02em}
+.sub{color:var(--muted);margin-top:4px}
+.needs{margin:14px 16px 0;height:48px;border-radius:8px;background:var(--red-tint);display:flex;align-items:center;justify-content:space-between;padding:0 14px;color:#831c1e;font-weight:600}
+.needs span{font-weight:400;color:#831c1e}
+.cols{display:flex;gap:12px;padding:16px 0 0 16px;overflow:hidden}
+.col{flex:none;width:200px;background:#fff;border:1px solid var(--rule);border-radius:10px;padding:12px}
+.col h2{font-size:15px;font-weight:600;line-height:20px}
+.col .meta{font-size:12px;color:var(--muted);margin-bottom:10px}
+.tag{display:flex;align-items:center;gap:10px;height:52px;border:1px solid var(--rule);border-radius:8px;padding:0 10px;margin-top:8px;background:#fff}
+.mag{width:12px;height:12px;border-radius:50%;flex:none}
+.tag b{font-weight:600;display:block;line-height:18px}
+.tag small{font-size:12px;color:var(--muted);line-height:16px}
+.tag.flag{border-color:#e9a7a3;background:var(--red-tint)}
+.empty{margin-top:8px;height:52px;border:1px dashed #c9cdd0;border-radius:8px;display:grid;place-items:center;font-size:12px;color:var(--muted)}
+.tray{margin:16px;background:#fff;border:1px solid var(--rule);border-radius:10px;padding:12px}
+.tray h2{font-size:15px;font-weight:600}
+.tray .row{display:flex;justify-content:space-between;align-items:center;height:44px;border-top:1px solid #f0f2f3}
+.tray .row:first-of-type{border-top:0}
+.pill{font-size:12px;font-weight:500;padding:2px 8px;border-radius:999px;background:#eef0f2;color:#3b4247}
+.pill.off{background:#dcfae5;color:#04250e}
+.legend{display:flex;gap:14px;padding:0 16px;font-size:12px;color:var(--muted)}
+.legend span{display:flex;gap:6px;align-items:center}
+nav{position:absolute;left:0;width:390px;bottom:0;height:72px;background:#fff;border-top:1px solid var(--rule);display:grid;grid-template-columns:repeat(4,1fr);padding:8px 8px 20px}
+nav a{display:grid;place-items:center;font-size:11px;color:var(--muted);text-decoration:none;border-radius:8px}
+nav a.on{background:var(--blue-tint);color:var(--blue);font-weight:600}
+</style></head><body>
+<header>
+  <div class="mark"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="1" y="3" width="20" height="14" rx="2" fill="none" stroke="#15191c" stroke-width="1.6"/><circle cx="7" cy="10" r="2.4" fill="#1f5fbf"/><circle cx="14" cy="10" r="2.4" fill="#c4302b"/><path d="M6 20h10" stroke="#15191c" stroke-width="1.6"/></svg>SiteStamp</div>
+  <div class="org">Northline Builders ▾</div>
+</header>
+<div class="title"><h1>Today</h1><p class="sub">Wed Oct 21 · 5 of 7 on site · 11:40 am</p></div>
+<div class="needs">3 need your call <span>Review →</span></div>
+<div class="cols">
+  <section class="col"><h2>Maple Ridge Duplex</h2><div class="meta">S-01 · 3 on site</div>
+    <div class="tag"><span class="mag" style="background:var(--blue)"></span><div><b>Marco Bellini</b><small>In 6:58 am · 4 h 42 m</small></div></div>
+    <div class="tag"><span class="mag" style="background:var(--blue)"></span><div><b>Priya Sandhu</b><small>In 7:02 am · 4 h 38 m</small></div></div>
+    <div class="tag flag"><span class="mag" style="background:var(--red)"></span><div><b>Dale Kowalski</b><small>In 7:15 am · off site</small></div></div>
+  </section>
+  <section class="col"><h2>Elm St. Reno</h2><div class="meta">S-02 · 2 on site</div>
+    <div class="tag"><span class="mag" style="background:var(--blue)"></span><div><b>Jenna Tremblay</b><small>In 7:30 am · 4 h 10 m</small></div></div>
+    <div class="tag"><span class="mag" style="background:var(--blue)"></span><div><b>Sam Okafor</b><small>In 7:31 am · 4 h 09 m</small></div></div>
+    <div class="empty">Drop a tag to assign</div>
+  </section>
+  <section class="col"><h2>Riverside Garage</h2><div class="meta">S-03 · nobody today</div>
+    <div class="empty">No crew booked</div>
+  </section>
+</div>
+<div class="tray"><h2>Not in today</h2>
+  <div class="row"><span>Luc Gagnon</span><span class="pill off">Time off</span></div>
+  <div class="row"><span>Aisha Rahman</span><span class="pill">No clock-in yet</span></div>
+</div>
+<div class="legend"><span><i class="mag" style="background:var(--blue);display:inline-block"></i>On site</span><span><i class="mag" style="background:var(--red);display:inline-block"></i>Needs you</span></div>
+<nav aria-label="Main"><a class="on" href="#">Today</a><a href="#">Crew</a><a href="#">Time</a><a href="#">Requests</a></nav>
+</body></html>
