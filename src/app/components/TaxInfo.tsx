@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 
-export default function TaxInfo() {
+export default function TaxInfo({ readOnly = false }: { readOnly?: boolean }) {
   const [claimAmount, setClaimAmount] = useState("");
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -13,12 +13,16 @@ export default function TaxInfo() {
 
   useEffect(() => {
     loadTaxInfo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function loadTaxInfo() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     const { data } = await supabase
       .from("profiles")
@@ -35,15 +39,25 @@ export default function TaxInfo() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setSaving(true);
     setSaved(false);
 
+    const amount = parseFloat(claimAmount);
+    if (claimAmount.trim() === "" || Number.isNaN(amount) || amount < 0) {
+      setError("Enter a valid amount (0 or more).");
+      return;
+    }
+
+    setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      setError("You're not logged in.");
+      setSaving(false);
+      return;
+    }
 
     const { error: updateError } = await supabase
       .from("profiles")
-      .update({ tax_claim_amount: parseFloat(claimAmount) })
+      .update({ tax_claim_amount: amount })
       .eq("id", user.id);
 
     if (updateError) {
@@ -70,19 +84,23 @@ export default function TaxInfo() {
             <input
               type="number"
               step="0.01"
+              min="0"
               value={claimAmount}
               onChange={(e) => setClaimAmount(e.target.value)}
               required
-              className="border border-gray-400 rounded px-3 py-2 w-40"
+              disabled={readOnly}
+              className="border border-gray-400 rounded px-3 py-2 w-40 disabled:bg-gray-100 disabled:text-gray-500"
             />
           </div>
-          <button
-            type="submit"
-            disabled={saving}
-            className="bg-gray-800 text-white rounded px-4 py-2 text-sm disabled:opacity-50"
-          >
-            {saving ? "Saving..." : "Save"}
-          </button>
+          {!readOnly && (
+            <button
+              type="submit"
+              disabled={saving}
+              className="bg-gray-800 text-white rounded px-4 py-2 text-sm disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Save"}
+            </button>
+          )}
         </form>
       )}
       {saved && <p className="text-green-600 text-sm mt-2">Saved.</p>}

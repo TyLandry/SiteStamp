@@ -5,6 +5,11 @@ import { useState } from "react";
 export default function InviteEmployee() {
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
+  const [employeeType, setEmployeeType] = useState<"employee" | "subcontractor">(
+    "employee"
+  );
+  const [hourlyWage, setHourlyWage] = useState("");
+  const [gstNumber, setGstNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +23,13 @@ export default function InviteEmployee() {
     const res = await fetch("/api/invite", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, fullName }),
+      body: JSON.stringify({
+        email,
+        fullName,
+        employeeType,
+        hourlyWage,
+        gstNumber,
+      }),
     });
 
     const data = await res.json();
@@ -29,6 +40,9 @@ export default function InviteEmployee() {
       setMessage(`Invite sent to ${email}.`);
       setEmail("");
       setFullName("");
+      setEmployeeType("employee");
+      setHourlyWage("");
+      setGstNumber("");
     }
     setLoading(false);
   }
@@ -57,6 +71,41 @@ export default function InviteEmployee() {
             className="border border-gray-400 rounded px-3 py-2"
           />
         </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium">Type</label>
+          <select
+            value={employeeType}
+            onChange={(e) =>
+              setEmployeeType(e.target.value as "employee" | "subcontractor")
+            }
+            className="border border-gray-400 rounded px-3 py-2"
+          >
+            <option value="employee">Employee</option>
+            <option value="subcontractor">Subcontractor</option>
+          </select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium">Hourly wage ($)</label>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={hourlyWage}
+            onChange={(e) => setHourlyWage(e.target.value)}
+            className="border border-gray-400 rounded px-3 py-2 w-32"
+          />
+        </div>
+        {employeeType === "subcontractor" && (
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium">GST number</label>
+            <input
+              type="text"
+              value={gstNumber}
+              onChange={(e) => setGstNumber(e.target.value)}
+              className="border border-gray-400 rounded px-3 py-2"
+            />
+          </div>
+        )}
         <button
           type="submit"
           disabled={loading}

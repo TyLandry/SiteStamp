@@ -11,7 +11,13 @@ type Request = {
   created_at: string;
 };
 
-export default function TimeOffRequests() {
+// "2026-11-12" -> local date (avoids the off-by-one-day UTC shift)
+function formatDate(value: string) {
+  const [y, m, d] = value.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString();
+}
+
+export default function TimeOffRequests({ readOnly = false }: { readOnly?: boolean }) {
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -22,12 +28,16 @@ export default function TimeOffRequests() {
 
   useEffect(() => {
     loadRequests();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function loadRequests() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     const { data } = await supabase
       .from("time_off_requests")
@@ -44,14 +54,18 @@ export default function TimeOffRequests() {
     setError(null);
 
     if (!startDate || !endDate) return;
-    if (new Date(endDate) < new Date(startDate)) {
+    if (endDate < startDate) {
       setError("End date must be on or after the start date.");
       return;
     }
 
     setSubmitting(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      setError("You're not logged in.");
+      setSubmitting(false);
+      return;
+    }
 
     const { data: profile } = await supabase
       .from("profiles")
@@ -82,35 +96,37 @@ export default function TimeOffRequests() {
     <div className="border border-gray-300 rounded p-4">
       <h2 className="font-semibold mb-4">Time Off Requests</h2>
 
-      <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3 mb-6">
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium">Start date</label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            required
-            className="border border-gray-400 rounded px-2 py-1 text-sm"
-          />
-        </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium">End date</label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            required
-            className="border border-gray-400 rounded px-2 py-1 text-sm"
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={submitting}
-          className="bg-gray-800 text-white rounded px-4 py-2 text-sm disabled:opacity-50"
-        >
-          {submitting ? "Submitting..." : "Request Time Off"}
-        </button>
-      </form>
+      {!readOnly && (
+        <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3 mb-6">
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium">Start date</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              required
+              className="border border-gray-400 rounded px-2 py-1 text-sm"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium">End date</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              required
+              className="border border-gray-400 rounded px-2 py-1 text-sm"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={submitting}
+            className="bg-gray-800 text-white rounded px-4 py-2 text-sm disabled:opacity-50"
+          >
+            {submitting ? "Submitting..." : "Request Time Off"}
+          </button>
+        </form>
+      )}
       {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
 
       {loading ? (
@@ -129,8 +145,8 @@ export default function TimeOffRequests() {
           <tbody>
             {requests.map((r) => (
               <tr key={r.id} className="border-b border-gray-100">
-                <td className="py-2">{new Date(r.start_date).toLocaleDateString()}</td>
-                <td className="py-2">{new Date(r.end_date).toLocaleDateString()}</td>
+                <td className="py-2">{formatDate(r.start_date)}</td>
+                <td className="py-2">{formatDate(r.end_date)}</td>
                 <td className="py-2 capitalize">{r.status}</td>
               </tr>
             ))}

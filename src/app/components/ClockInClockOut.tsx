@@ -3,14 +3,16 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 
-export default function ClockInOut() {
+export default function ClockInOut({ readOnly = false }: { readOnly?: boolean }) {
   const [loading, setLoading] = useState(false);
   const [activeEntry, setActiveEntry] = useState<{ id: string; clock_in: string } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
     checkActiveEntry();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function checkActiveEntry() {
@@ -49,8 +51,14 @@ export default function ClockInOut() {
   async function handleClockIn() {
     setLoading(true);
     setLocationError(null);
+    setError(null);
+
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      setError("You're not logged in.");
+      setLoading(false);
+      return;
+    }
 
     const { data: profile } = await supabase
       .from("profiles")
@@ -61,14 +69,18 @@ export default function ClockInOut() {
     const location = await getLocation();
     if (!location) setLocationError("Could not get location — clocked in without it.");
 
-    await supabase.from("time_entries").insert({
+    const { error: insertError } = await supabase.from("time_entries").insert({
       profile_id: user.id,
       org_id: profile?.org_id,
       clock_in: new Date().toISOString(),
       clock_in_location: location,
     });
 
-    await checkActiveEntry();
+    if (insertError) {
+      setError(insertError.message);
+    } else {
+      await checkActiveEntry();
+    }
     setLoading(false);
   }
 
@@ -76,11 +88,12 @@ export default function ClockInOut() {
     if (!activeEntry) return;
     setLoading(true);
     setLocationError(null);
+    setError(null);
 
     const location = await getLocation();
     if (!location) setLocationError("Could not get location — clocked out without it.");
 
-    await supabase
+    const { error: updateError } = await supabase
       .from("time_entries")
       .update({
         clock_out: new Date().toISOString(),
@@ -88,7 +101,11 @@ export default function ClockInOut() {
       })
       .eq("id", activeEntry.id);
 
-    setActiveEntry(null);
+    if (updateError) {
+      setError(updateError.message);
+    } else {
+      setActiveEntry(null);
+    }
     setLoading(false);
   }
 
@@ -100,14 +117,18 @@ export default function ClockInOut() {
           <p className="text-sm text-gray-600">
             Clocked in since {new Date(activeEntry.clock_in).toLocaleTimeString()}
           </p>
-          <button
-            onClick={handleClockOut}
-            disabled={loading}
-            className="bg-gray-800 text-white rounded px-4 py-2 text-sm disabled:opacity-50"
-          >
-            {loading ? "..." : "Clock Out"}
-          </button>
+          {!readOnly && (
+            <button
+              onClick={handleClockOut}
+              disabled={loading}
+              className="bg-gray-800 text-white rounded px-4 py-2 text-sm disabled:opacity-50"
+            >
+              {loading ? "..." : "Clock Out"}
+            </button>
+          )}
         </div>
+      ) : readOnly ? (
+        <p className="text-sm text-gray-600">Clocked out</p>
       ) : (
         <button
           onClick={handleClockIn}
@@ -118,6 +139,7 @@ export default function ClockInOut() {
         </button>
       )}
       {locationError && <p className="text-amber-600 text-sm mt-2">{locationError}</p>}
+      {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
     </div>
   );
 }
