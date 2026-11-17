@@ -3,6 +3,8 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { fmtDate, parseLocalDate } from "@/utils/payPeriods";
 import PrintButton from "../../components/PrintButton";
+import { BrandMark } from "../../components/ui/Marks";
+import { ChevronLeftIcon } from "../../components/ui/Icons";
 
 function money(n: number) {
   return Number(n).toLocaleString("en-CA", { style: "currency", currency: "CAD" });
@@ -94,160 +96,166 @@ export default async function PayStubPage({ params }: { params: Promise<{ id: st
   const backHref = isEmployer ? "/admin/payroll" : "/employee";
 
   return (
-    <div className="max-w-3xl mx-auto p-8 print:p-0 print:max-w-none">
-      <div className="flex items-center justify-between mb-6 print:hidden">
-        <Link href={backHref} className="text-sm text-gray-500 hover:underline">
-          ← Back
+    <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:py-10 print:max-w-none print:p-0">
+      <div className="mb-4 flex items-center justify-between gap-3 print:hidden">
+        <Link href={backHref} className="btn btn-text -ml-2">
+          <ChevronLeftIcon />
+          Back
         </Link>
         <PrintButton />
       </div>
 
-      <div className="border border-gray-300 rounded p-8 print:border-0 print:p-0">
+      <article className="panel p-5 sm:p-8 print:border-0 print:p-0">
         {isDraft && (
-          <p className="mb-4 rounded bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-700">
-            DRAFT — not finalized. Amounts may change.
+          <p className="notice mb-5" role="status">
+            Draft: not finalized. Amounts may change.
           </p>
         )}
 
         {/* ---------- Header ---------- */}
-        <div className="flex justify-between items-start mb-6">
+        <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold">
-              {isSub ? "Payment Statement" : "Statement of Earnings"}
-            </h1>
-            <p className="text-sm text-gray-500">Site Stamp</p>
+            <div className="brand mb-2">
+              <BrandMark />
+              SiteStamp
+            </div>
+            <h1>{isSub ? "Payment statement" : "Statement of earnings"}</h1>
           </div>
-          <div className="text-right text-sm">
-            <p className="font-medium">{name}</p>
-            <p>
-              Period: {fmtDate(parseLocalDate(stub.period_start))} –{" "}
-              {fmtDate(parseLocalDate(stub.period_end))}
-            </p>
-            <p>Pay date: {fmtDate(parseLocalDate(stub.pay_date))}</p>
-          </div>
-        </div>
+          <dl className="text-sm sm:text-right">
+            <dt className="sr-only">Name</dt>
+            <dd className="font-semibold">{name}</dd>
+            <dt className="sr-only">Pay period</dt>
+            <dd className="muted">
+              Period {fmtDate(parseLocalDate(stub.period_start))} – {fmtDate(parseLocalDate(stub.period_end))}
+            </dd>
+            <dt className="sr-only">Pay date</dt>
+            <dd className="muted">Paid {fmtDate(parseLocalDate(stub.pay_date))}</dd>
+          </dl>
+        </header>
 
         {/* ---------- Earnings ---------- */}
-        <table className="w-full text-sm mb-6">
-          <thead>
-            <tr className="border-b border-gray-300">
-              <th className="text-left py-2 font-medium">Earnings</th>
-              <th className="text-right py-2 font-medium">Hours</th>
-              <th className="text-right py-2 font-medium">Rate</th>
-              <th className="text-right py-2 font-medium">Current</th>
-              <th className="text-right py-2 font-medium">Year to date</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="border-b border-gray-100">
-              <td className="py-2">Regular</td>
-              <td className="py-2 text-right">{Number(stub.regular_hours).toFixed(2)}</td>
-              <td className="py-2 text-right">{money(wage)}</td>
-              <td className="py-2 text-right">{money(regularPay)}</td>
-              <td className="py-2 text-right"></td>
-            </tr>
-            {Number(stub.overtime_hours) > 0 && (
-              <tr className="border-b border-gray-100">
-                <td className="py-2">Overtime ({multiplier}×)</td>
-                <td className="py-2 text-right">{Number(stub.overtime_hours).toFixed(2)}</td>
-                <td className="py-2 text-right">{money(wage * multiplier)}</td>
-                <td className="py-2 text-right">{money(overtimePay)}</td>
-                <td className="py-2 text-right"></td>
-              </tr>
-            )}
-            <tr className="font-medium">
-              <td className="py-2" colSpan={3}>
-                Gross pay
-              </td>
-              <td className="py-2 text-right">{money(stub.gross)}</td>
-              <td className="py-2 text-right">{money(ytd.gross)}</td>
-            </tr>
-          </tbody>
-        </table>
-
-        {/* ---------- Deductions / GST ---------- */}
-        {isSub ? (
-          <table className="w-full text-sm mb-6">
-            <tbody>
-              <tr className="border-b border-gray-100">
-                <td className="py-2">
-                  GST (5%){stub.details?.gst_number ? ` — GST #${stub.details.gst_number}` : ""}
-                </td>
-                <td className="py-2 text-right">{money(stub.gst)}</td>
-                <td className="py-2 text-right w-32">{money(ytd.gst)}</td>
-              </tr>
-              <tr>
-                <td className="py-2 text-gray-500" colSpan={3}>
-                  No deductions are taken from subcontractor payments.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        ) : (
-          <table className="w-full text-sm mb-6">
+        <div className="table-wrap mb-6">
+          <table className="data">
             <thead>
-              <tr className="border-b border-gray-300">
-                <th className="text-left py-2 font-medium">Deductions</th>
-                <th className="text-right py-2 font-medium">Current</th>
-                <th className="text-right py-2 font-medium">Year to date</th>
+              <tr>
+                <th>Earnings</th>
+                <th className="num">Hours</th>
+                <th className="num">Rate</th>
+                <th className="num">Current</th>
+                <th className="num">Year to date</th>
               </tr>
             </thead>
             <tbody>
-              <tr className="border-b border-gray-100">
-                <td className="py-2">CPP</td>
-                <td className="py-2 text-right">{money(stub.cpp)}</td>
-                <td className="py-2 text-right">{money(ytd.cpp)}</td>
+              <tr>
+                <td>Regular</td>
+                <td className="num">{Number(stub.regular_hours).toFixed(2)}</td>
+                <td className="num">{money(wage)}</td>
+                <td className="num">{money(regularPay)}</td>
+                <td className="num" />
               </tr>
-              {ytd.cpp2 > 0 && (
-                <tr className="border-b border-gray-100">
-                  <td className="py-2">CPP2</td>
-                  <td className="py-2 text-right">{money(stub.cpp2)}</td>
-                  <td className="py-2 text-right">{money(ytd.cpp2)}</td>
+              {Number(stub.overtime_hours) > 0 && (
+                <tr>
+                  <td>Overtime ({multiplier}×)</td>
+                  <td className="num">{Number(stub.overtime_hours).toFixed(2)}</td>
+                  <td className="num">{money(wage * multiplier)}</td>
+                  <td className="num">{money(overtimePay)}</td>
+                  <td className="num" />
                 </tr>
               )}
-              <tr className="border-b border-gray-100">
-                <td className="py-2">EI</td>
-                <td className="py-2 text-right">{money(stub.ei)}</td>
-                <td className="py-2 text-right">{money(ytd.ei)}</td>
-              </tr>
-              <tr className="border-b border-gray-100">
-                <td className="py-2">
-                  Federal income tax
-                  {Number(stub.details?.extra_tax ?? 0) > 0 && (
-                    <span className="text-gray-500">
-                      {" "}
-                      (incl. {money(Number(stub.details.extra_tax))} extra requested)
-                    </span>
-                  )}
-                </td>
-                <td className="py-2 text-right">{money(stub.federal_tax)}</td>
-                <td className="py-2 text-right">{money(ytd.federal_tax)}</td>
-              </tr>
-              <tr className="border-b border-gray-100">
-                <td className="py-2">Provincial income tax</td>
-                <td className="py-2 text-right">{money(stub.provincial_tax)}</td>
-                <td className="py-2 text-right">{money(ytd.provincial_tax)}</td>
-              </tr>
-              <tr className="font-medium">
-                <td className="py-2">Total deductions</td>
-                <td className="py-2 text-right">{money(totalDeductions)}</td>
-                <td className="py-2 text-right">{money(ytdDeductions)}</td>
+              <tr className="total">
+                <td colSpan={3}>Gross pay</td>
+                <td className="num">{money(stub.gross)}</td>
+                <td className="num">{money(ytd.gross)}</td>
               </tr>
             </tbody>
           </table>
+        </div>
+
+        {/* ---------- Deductions / GST ---------- */}
+        {isSub ? (
+          <div className="table-wrap mb-6">
+            <table className="data">
+              <thead>
+                <tr>
+                  <th>GST</th>
+                  <th className="num">Current</th>
+                  <th className="num">Year to date</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    GST (5%){stub.details?.gst_number ? ` · GST #${stub.details.gst_number}` : ""}
+                  </td>
+                  <td className="num">{money(stub.gst)}</td>
+                  <td className="num">{money(ytd.gst)}</td>
+                </tr>
+              </tbody>
+            </table>
+            <p className="hint mt-2 px-3">No deductions are taken from subcontractor payments.</p>
+          </div>
+        ) : (
+          <div className="table-wrap mb-6">
+            <table className="data">
+              <thead>
+                <tr>
+                  <th>Deductions</th>
+                  <th className="num">Current</th>
+                  <th className="num">Year to date</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>CPP</td>
+                  <td className="num">{money(stub.cpp)}</td>
+                  <td className="num">{money(ytd.cpp)}</td>
+                </tr>
+                {ytd.cpp2 > 0 && (
+                  <tr>
+                    <td>CPP2</td>
+                    <td className="num">{money(stub.cpp2)}</td>
+                    <td className="num">{money(ytd.cpp2)}</td>
+                  </tr>
+                )}
+                <tr>
+                  <td>EI</td>
+                  <td className="num">{money(stub.ei)}</td>
+                  <td className="num">{money(ytd.ei)}</td>
+                </tr>
+                <tr>
+                  <td>
+                    Federal income tax
+                    {Number(stub.details?.extra_tax ?? 0) > 0 && (
+                      <small>Includes {money(Number(stub.details.extra_tax))} extra requested</small>
+                    )}
+                  </td>
+                  <td className="num">{money(stub.federal_tax)}</td>
+                  <td className="num">{money(ytd.federal_tax)}</td>
+                </tr>
+                <tr>
+                  <td>Provincial income tax</td>
+                  <td className="num">{money(stub.provincial_tax)}</td>
+                  <td className="num">{money(ytd.provincial_tax)}</td>
+                </tr>
+                <tr className="total">
+                  <td>Total deductions</td>
+                  <td className="num">{money(totalDeductions)}</td>
+                  <td className="num">{money(ytdDeductions)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         )}
 
         {/* ---------- Net ---------- */}
-        <div className="flex justify-between items-center border-t-2 border-gray-800 pt-3 text-lg font-semibold">
-          <span>{isSub ? "Total payment" : "Net pay"}</span>
-          <span className="flex gap-8">
-            <span>{money(stub.net_pay)}</span>
-            <span className="text-sm font-normal text-gray-500 self-end">
-              YTD {money(ytd.net_pay)}
-            </span>
+        <div className="flex items-end justify-between gap-4 border-t-2 border-[var(--text)] pt-4">
+          <span className="text-lg font-semibold">{isSub ? "Total payment" : "Net pay"}</span>
+          <span className="text-right">
+            <span className="block text-2xl font-semibold num">{money(stub.net_pay)}</span>
+            <span className="small muted">Year to date {money(ytd.net_pay)}</span>
           </span>
         </div>
-      </div>
-    </div>
+      </article>
+    </main>
   );
 }

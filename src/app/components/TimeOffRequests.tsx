@@ -14,7 +14,19 @@ type Request = {
 // "2026-11-12" -> local date (avoids the off-by-one-day UTC shift)
 function formatDate(value: string) {
   const [y, m, d] = value.split("-").map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString();
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function statusPill(status: string) {
+  if (status === "approved") return <span className="pill pill-ok">Approved</span>;
+  if (status === "denied") return <span className="pill">Denied</span>;
+  if (status === "pending") return <span className="pill pill-warn">Waiting</span>;
+  return <span className="pill capitalize">{status}</span>;
 }
 
 export default function TimeOffRequests({ readOnly = false }: { readOnly?: boolean }) {
@@ -25,11 +37,6 @@ export default function TimeOffRequests({ readOnly = false }: { readOnly?: boole
   const [endDate, setEndDate] = useState("");
   const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
-
-  useEffect(() => {
-    loadRequests();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   async function loadRequests() {
     setLoading(true);
@@ -48,6 +55,12 @@ export default function TimeOffRequests({ readOnly = false }: { readOnly?: boole
     setRequests(data ?? []);
     setLoading(false);
   }
+
+  useEffect(() => {
+    // Start the load after the effect runs; the loading state already starts true
+    void Promise.resolve().then(loadRequests);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -93,66 +106,70 @@ export default function TimeOffRequests({ readOnly = false }: { readOnly?: boole
   }
 
   return (
-    <div className="border border-gray-300 rounded p-4">
-      <h2 className="font-semibold mb-4">Time Off Requests</h2>
+    <section className="panel" aria-labelledby="timeoff-h">
+      <div className="panel-h">
+        <h2 id="timeoff-h">Time off</h2>
+        {!loading ? <span className="small muted">{requests.length} request{requests.length === 1 ? "" : "s"}</span> : null}
+      </div>
 
       {!readOnly && (
-        <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3 mb-6">
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium">Start date</label>
+        <form onSubmit={handleSubmit} className="panel-body grid grid-cols-2 gap-3">
+          <div className="field">
+            <label htmlFor="timeoff-start">First day off</label>
             <input
+              id="timeoff-start"
+              className="input"
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
               required
-              className="border border-gray-400 rounded px-2 py-1 text-sm"
             />
           </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium">End date</label>
+          <div className="field">
+            <label htmlFor="timeoff-end">Last day off</label>
             <input
+              id="timeoff-end"
+              className="input"
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
               required
-              className="border border-gray-400 rounded px-2 py-1 text-sm"
             />
           </div>
-          <button
-            type="submit"
-            disabled={submitting}
-            className="bg-gray-800 text-white rounded px-4 py-2 text-sm disabled:opacity-50"
-          >
-            {submitting ? "Submitting..." : "Request Time Off"}
+          <button type="submit" disabled={submitting} className="btn btn-primary col-span-2">
+            {submitting ? "Sending…" : "Request time off"}
           </button>
+          {error && (
+            <p className="msg-error col-span-2" role="alert">
+              {error}
+            </p>
+          )}
         </form>
       )}
-      {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
 
       {loading ? (
-        <p className="text-sm text-gray-500">Loading...</p>
+        <div className="panel-body flex flex-col gap-3" aria-busy="true">
+          <span className="skeleton w-full" />
+          <span className="skeleton w-2/3" />
+        </div>
       ) : requests.length === 0 ? (
-        <p className="text-sm text-gray-500">No requests yet.</p>
+        <div className="panel-body">
+          <p className="empty">No requests yet.</p>
+        </div>
       ) : (
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-300">
-              <th className="text-left py-2 font-medium">Start</th>
-              <th className="text-left py-2 font-medium">End</th>
-              <th className="text-left py-2 font-medium">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {requests.map((r) => (
-              <tr key={r.id} className="border-b border-gray-100">
-                <td className="py-2">{formatDate(r.start_date)}</td>
-                <td className="py-2">{formatDate(r.end_date)}</td>
-                <td className="py-2 capitalize">{r.status}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <ul className="border-t border-[var(--rule)]">
+          {requests.map((r) => (
+            <li key={r.id} className="list-row">
+              <div className="min-w-0">
+                {r.start_date === r.end_date
+                  ? formatDate(r.start_date)
+                  : `${formatDate(r.start_date)} – ${formatDate(r.end_date)}`}
+              </div>
+              {statusPill(r.status)}
+            </li>
+          ))}
+        </ul>
       )}
-    </div>
+    </section>
   );
 }

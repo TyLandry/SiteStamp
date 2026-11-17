@@ -143,148 +143,179 @@ export default function PaySettingsForm() {
   const next = getPeriod(previewSettings, addDays(current.end, 1));
 
   return (
-    <div className="border border-gray-300 rounded p-4">
-      <h2 className="font-semibold mb-1">Pay Settings</h2>
-      <p className="text-sm text-gray-500 mb-4">
-        How often your company pays its staff, and how overtime is handled.
-      </p>
-
+    <section aria-label="Pay settings">
       {loading ? (
-        <p className="text-sm text-gray-500">Loading...</p>
+        <div className="panel p-4 flex flex-col gap-3" aria-busy="true">
+          <span className="skeleton w-48" />
+          <span className="skeleton w-full" />
+          <span className="skeleton w-2/3" />
+        </div>
       ) : (
-        <form onSubmit={handleSave} className="flex flex-col gap-4">
+        <form onSubmit={handleSave}>
           {/* ---------- Pay period ---------- */}
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium">Pay frequency</label>
-            <select
-              value={frequency}
-              onChange={(e) => setFrequency(e.target.value as PayFrequency)}
-              className="border border-gray-400 rounded px-3 py-2 w-72"
-            >
-              {(Object.keys(PAY_FREQUENCY_LABELS) as PayFrequency[]).map((key) => (
-                <option key={key} value={key}>
-                  {PAY_FREQUENCY_LABELS[key]}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {needsAnchor && (
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">First day of a pay period</label>
-              <input
-                type="date"
-                value={anchor}
-                onChange={(e) => setAnchor(e.target.value)}
-                className="border border-gray-400 rounded px-3 py-2 w-48"
-              />
-              <p className="text-xs text-gray-500">
-                Any past or upcoming period start works. The app repeats the cycle from there.
+          <div className="setting">
+            <div>
+              <h2>Pay period</h2>
+              <p className="hint mt-1">
+                How often your company pays its crew. Hours and pay runs are grouped by this.
               </p>
             </div>
-          )}
+            <div className="panel panel-body pt-4 flex flex-col gap-4">
+              <div className="field max-w-sm">
+                <label htmlFor="pay-frequency">Pay frequency</label>
+                <select
+                  id="pay-frequency"
+                  className="select"
+                  value={frequency}
+                  onChange={(e) => setFrequency(e.target.value as PayFrequency)}
+                >
+                  {(Object.keys(PAY_FREQUENCY_LABELS) as PayFrequency[]).map((key) => (
+                    <option key={key} value={key}>
+                      {PAY_FREQUENCY_LABELS[key]}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          <div className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded px-3 py-2">
-            <p>Current period: {fmtDate(current.start)} – {fmtDate(current.end)}</p>
-            <p>Next period: {fmtDate(next.start)} – {fmtDate(next.end)}</p>
+              {needsAnchor && (
+                <div className="field max-w-sm">
+                  <label htmlFor="pay-anchor">First day of a pay period</label>
+                  <input
+                    id="pay-anchor"
+                    className="input"
+                    type="date"
+                    value={anchor}
+                    onChange={(e) => setAnchor(e.target.value)}
+                  />
+                  <span className="hint">
+                    Any past or upcoming period start works. The app repeats the cycle from there.
+                  </span>
+                </div>
+              )}
+
+              <div className="note-box">
+                <p>
+                  Current period: <b className="text-ink font-semibold">{fmtDate(current.start)} – {fmtDate(current.end)}</b>
+                </p>
+                <p>
+                  Next period: <b className="text-ink font-semibold">{fmtDate(next.start)} – {fmtDate(next.end)}</b>
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* ---------- Overtime ---------- */}
-          <div className="border-t border-gray-200 pt-4 flex flex-col gap-4">
-            <h3 className="font-medium">Overtime</h3>
+          <div className="setting">
+            <div>
+              <h2>Overtime</h2>
+              <p className="hint mt-1">
+                Most employees are legally entitled to overtime. Only turn this off if your company is
+                exempt or has a written overtime agreement. Subcontractors never get overtime.
+              </p>
+            </div>
+            <div className="panel panel-body pt-4 flex flex-col gap-4">
+              <label className="check">
+                <input
+                  type="checkbox"
+                  checked={otEnabled}
+                  onChange={(e) => setOtEnabled(e.target.checked)}
+                />
+                Pay overtime
+              </label>
 
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={otEnabled}
-                onChange={(e) => setOtEnabled(e.target.checked)}
-              />
-              Pay overtime
-            </label>
-            <p className="text-xs text-gray-500 -mt-2">
-              Most employees are legally entitled to overtime. Only turn this off if your
-              company is exempt or has a written overtime agreement. Subcontractors never
-              get overtime.
-            </p>
-
-            {otEnabled && (
-              <>
-                <div className="flex flex-wrap gap-4">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-medium">Hours per day before overtime</label>
-                    <input
-                      type="number"
-                      step="0.25"
-                      min="0"
-                      value={dailyHours}
-                      onChange={(e) => setDailyHours(e.target.value)}
-                      placeholder="No daily limit"
-                      className="border border-gray-400 rounded px-3 py-2 w-40"
-                    />
+              {otEnabled && (
+                <>
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="field">
+                      <label htmlFor="ot-daily">Hours per day before overtime</label>
+                      <input
+                        id="ot-daily"
+                        className="input"
+                        type="number"
+                        inputMode="decimal"
+                        step="0.25"
+                        min="0"
+                        value={dailyHours}
+                        onChange={(e) => setDailyHours(e.target.value)}
+                        placeholder="No daily limit"
+                      />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="ot-weekly">Hours per week before overtime</label>
+                      <input
+                        id="ot-weekly"
+                        className="input"
+                        type="number"
+                        inputMode="decimal"
+                        step="0.25"
+                        min="0"
+                        value={weeklyHours}
+                        onChange={(e) => setWeeklyHours(e.target.value)}
+                        placeholder="No weekly limit"
+                      />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="ot-rate">Overtime rate (×)</label>
+                      <input
+                        id="ot-rate"
+                        className="input"
+                        type="number"
+                        inputMode="decimal"
+                        step="0.1"
+                        min="1"
+                        value={multiplier}
+                        onChange={(e) => setMultiplier(e.target.value)}
+                      />
+                    </div>
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-medium">Hours per week before overtime</label>
-                    <input
-                      type="number"
-                      step="0.25"
-                      min="0"
-                      value={weeklyHours}
-                      onChange={(e) => setWeeklyHours(e.target.value)}
-                      placeholder="No weekly limit"
-                      className="border border-gray-400 rounded px-3 py-2 w-40"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-medium">Overtime rate (×)</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="1"
-                      value={multiplier}
-                      onChange={(e) => setMultiplier(e.target.value)}
-                      className="border border-gray-400 rounded px-3 py-2 w-28"
-                    />
-                  </div>
-                </div>
-                <p className="text-xs text-gray-500 -mt-2">
-                  Leave a limit blank to turn that rule off. Alberta default: 8 hours/day or 44
-                  hours/week, whichever gives more overtime, at 1.5×.
-                </p>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-medium">Work week starts on</label>
-                  <select
-                    value={weekStart}
-                    onChange={(e) => setWeekStart(Number(e.target.value))}
-                    className="border border-gray-400 rounded px-3 py-2 w-48"
-                  >
-                    {WEEK_DAYS.map((name, i) => (
-                      <option key={name} value={i}>
-                        {name}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-gray-500">
-                    Weekly overtime is counted per work week, even when a pay period ends mid-week.
+                  <p className="hint">
+                    Leave a limit blank to turn that rule off. Alberta default: 8 hours/day or 44
+                    hours/week, whichever gives more overtime, at 1.5×.
                   </p>
-                </div>
-              </>
-            )}
+
+                  <div className="field max-w-sm">
+                    <label htmlFor="ot-week-start">Work week starts on</label>
+                    <select
+                      id="ot-week-start"
+                      className="select"
+                      value={weekStart}
+                      onChange={(e) => setWeekStart(Number(e.target.value))}
+                    >
+                      {WEEK_DAYS.map((name, i) => (
+                        <option key={name} value={i}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="hint">
+                      Weekly overtime is counted per work week, even when a pay period ends mid-week.
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
-          <div>
-            <button
-              type="submit"
-              disabled={saving}
-              className="bg-gray-800 text-white rounded px-4 py-2 text-sm disabled:opacity-50"
-            >
-              {saving ? "Saving..." : "Save"}
-            </button>
+          <div className="setting">
+            <div />
+            <div className="flex flex-wrap items-center gap-3">
+              <button type="submit" disabled={saving} className="btn btn-primary">
+                {saving ? "Saving…" : "Save settings"}
+              </button>
+              {message && (
+                <p className="msg-ok" role="status">
+                  {message}
+                </p>
+              )}
+              {error && (
+                <p className="msg-error" role="alert">
+                  {error}
+                </p>
+              )}
+            </div>
           </div>
         </form>
       )}
-      {message && <p className="text-green-600 text-sm mt-3">{message}</p>}
-      {error && <p className="text-red-600 text-sm mt-3">{error}</p>}
-    </div>
+    </section>
   );
 }

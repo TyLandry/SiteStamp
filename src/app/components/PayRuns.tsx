@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { ChevronLeftIcon, ChevronRightIcon } from "./ui/Icons";
 import { createClient } from "@/utils/supabase/client";
 import { addDays, getPeriod, fmtDate, parseLocalDate, toDateInput } from "@/utils/payPeriods";
 import {
@@ -35,11 +36,15 @@ export default function PayRuns() {
 
   // New pay run form: defaults to the most recent period that has ended
   const [refDate, setRefDate] = useState(() => addDays(new Date(), -1));
-  const [payDate, setPayDate] = useState("");
+  // The pay date defaults to the period's last day; an edit only sticks to the
+  // period it was made for, so changing the period resets it.
+  const [payDateEdit, setPayDateEdit] = useState<{ period: string; value: string } | null>(null);
 
   const newPeriod = getPeriod(settings, refDate);
   const newPeriodStart = toDateInput(newPeriod.start);
   const newPeriodEnd = toDateInput(newPeriod.end);
+  const payDate = payDateEdit?.period === newPeriodEnd ? payDateEdit.value : newPeriodEnd;
+  const setPayDate = (value: string) => setPayDateEdit({ period: newPeriodEnd, value });
 
   useEffect(() => {
     (async () => {
@@ -53,11 +58,6 @@ export default function PayRuns() {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Default the pay date to the period's last day whenever the period changes
-  useEffect(() => {
-    setPayDate(newPeriodEnd);
-  }, [newPeriodEnd]);
 
   async function loadRuns() {
     const { data, error: loadError } = await supabase
@@ -205,97 +205,151 @@ export default function PayRuns() {
 
   if (loading) {
     return (
-      <div className="border border-gray-300 rounded p-4">
-        <p className="text-sm text-gray-500">Loading...</p>
+      <div className="panel p-4 flex flex-col gap-3" aria-busy="true">
+        <span className="skeleton w-48" />
+        <span className="skeleton w-full" />
+        <span className="skeleton w-2/3" />
       </div>
     );
   }
 
+  const statusPill = (status: PayRun["status"]) =>
+    status === "finalized" ? (
+      <span className="pill pill-ok">Finalized</span>
+    ) : (
+      <span className="pill pill-warn">Draft</span>
+    );
+
   return (
-    <div className="flex flex-col gap-6">
-      {/* ---------- New pay run ---------- */}
-      <div className="border border-gray-300 rounded p-4">
-        <h2 className="font-semibold mb-3">New Pay Run</h2>
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium">Pay period</label>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setRefDate(addDays(newPeriod.start, -1))}
-                className="border border-gray-400 rounded px-2 py-1 text-xs hover:bg-gray-100"
-              >
-                ←
-              </button>
-              <span className="text-sm w-56 text-center">
-                {fmtDate(newPeriod.start)} – {fmtDate(newPeriod.end)}
-              </span>
-              <button
-                onClick={() => setRefDate(addDays(newPeriod.end, 1))}
-                className="border border-gray-400 rounded px-2 py-1 text-xs hover:bg-gray-100"
-              >
-                →
+    <div className="stack">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_384px] items-start">
+        {/* ---------- New pay run ---------- */}
+        <section className="panel" aria-labelledby="new-run-h">
+          <div className="panel-h">
+            <h2 id="new-run-h">New pay run</h2>
+          </div>
+          <div className="panel-body flex flex-col gap-4">
+            <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_200px_auto] sm:items-end">
+              <div className="field">
+                <span className="label" id="period-label">
+                  Pay period
+                </span>
+                <div className="flex items-center gap-2" role="group" aria-labelledby="period-label">
+                  <button
+                    type="button"
+                    className="btn px-3"
+                    onClick={() => setRefDate(addDays(newPeriod.start, -1))}
+                    aria-label="Previous period"
+                  >
+                    <ChevronLeftIcon />
+                  </button>
+                  <span className="flex-1 text-center font-semibold whitespace-nowrap">
+                    {fmtDate(newPeriod.start)} – {fmtDate(newPeriod.end)}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn px-3"
+                    onClick={() => setRefDate(addDays(newPeriod.end, 1))}
+                    aria-label="Next period"
+                  >
+                    <ChevronRightIcon />
+                  </button>
+                </div>
+              </div>
+              <div className="field">
+                <label htmlFor="pay-date">Pay date</label>
+                <input
+                  id="pay-date"
+                  className="input"
+                  type="date"
+                  value={payDate}
+                  onChange={(e) => setPayDate(e.target.value)}
+                />
+              </div>
+              <button type="button" onClick={createRun} disabled={busy} className="btn btn-primary">
+                {busy ? "Working…" : "Create pay run"}
               </button>
             </div>
+            <p className="hint">
+              The pay date decides which tax year and rates apply, and counts toward that year&apos;s CPP
+              and EI maximums.
+            </p>
           </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium">Pay date</label>
-            <input
-              type="date"
-              value={payDate}
-              onChange={(e) => setPayDate(e.target.value)}
-              className="border border-gray-400 rounded px-3 py-1.5 text-sm"
-            />
+        </section>
+
+        {/* ---------- Past runs ---------- */}
+        <section className="panel" aria-labelledby="runs-h">
+          <div className="panel-h">
+            <h2 id="runs-h">Pay runs</h2>
+            <span className="small muted">{runs.length}</span>
           </div>
-          <button
-            onClick={createRun}
-            disabled={busy}
-            className="bg-gray-800 text-white rounded px-4 py-2 text-sm disabled:opacity-50"
-          >
-            {busy ? "Working..." : "Create pay run"}
-          </button>
-        </div>
-        <p className="text-xs text-gray-500 mt-2">
-          The pay date decides which tax year and rates apply, and counts toward that year&apos;s CPP and EI maximums.
-        </p>
+          {runs.length === 0 ? (
+            <div className="panel-body">
+              <p className="empty">No pay runs yet. Create one for the last period that ended.</p>
+            </div>
+          ) : (
+            <ul>
+              {runs.map((r) => {
+                const isOpen = selected?.id === r.id;
+                return (
+                  <li key={r.id} className={`list-row ${isOpen ? "bg-[var(--active)]" : ""}`}>
+                    <div className="min-w-0">
+                      <div className="font-semibold">{periodLabel(r)}</div>
+                      <div className="small muted">Pay date {fmtDate(parseLocalDate(r.pay_date))}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {statusPill(r.status)}
+                      <button
+                        type="button"
+                        onClick={() => openRun(r)}
+                        className="btn btn-text"
+                        aria-current={isOpen ? "true" : undefined}
+                      >
+                        Open
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
       </div>
 
-      {error && <p className="text-red-600 text-sm">{error}</p>}
+      {error && (
+        <p className="msg-error" role="alert">
+          {error}
+        </p>
+      )}
 
       {/* ---------- Selected run ---------- */}
       {selected && (
-        <div className="border border-gray-300 rounded p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <div>
-              <h2 className="font-semibold">Pay Run: {periodLabel(selected)}</h2>
-              <p className="text-sm text-gray-500">
-                Pay date {fmtDate(parseLocalDate(selected.pay_date))} ·{" "}
-                {selected.status === "finalized" ? (
-                  <span className="text-green-700">Finalized</span>
-                ) : (
-                  <span className="text-amber-600">Draft</span>
-                )}
+        <section className="panel" aria-labelledby="run-h">
+          <div className="panel-h flex-wrap items-center">
+            <div className="min-w-0">
+              <h2 id="run-h">{periodLabel(selected)}</h2>
+              <p className="small muted mt-0.5 flex items-center gap-2">
+                Pay date {fmtDate(parseLocalDate(selected.pay_date))} {statusPill(selected.status)}
               </p>
             </div>
             {selected.status === "draft" && (
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => calculate(selected)}
-                  disabled={busy}
-                  className="border border-gray-400 rounded px-3 py-1.5 text-sm hover:bg-gray-100 disabled:opacity-50"
-                >
+              <div className="flex flex-wrap items-center gap-2">
+                <button type="button" onClick={() => calculate(selected)} disabled={busy} className="btn">
                   Recalculate
                 </button>
                 <button
+                  type="button"
                   onClick={() => deleteDraft(selected)}
                   disabled={busy}
-                  className="text-red-600 text-sm px-2 py-1.5 hover:underline disabled:opacity-50"
+                  className="btn btn-text btn-danger"
                 >
                   Delete draft
                 </button>
                 <button
+                  type="button"
                   onClick={() => finalize(selected)}
                   disabled={busy || stubs.length === 0}
-                  className="bg-gray-800 text-white rounded px-4 py-1.5 text-sm disabled:opacity-50"
+                  className="btn btn-primary"
                 >
                   Finalize
                 </button>
@@ -304,7 +358,7 @@ export default function PayRuns() {
           </div>
 
           {warnings.length > 0 && (
-            <ul className="mb-4 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2 list-disc list-inside">
+            <ul className="notice mx-4 mb-4 list-disc pl-8">
               {warnings.map((w) => (
                 <li key={w}>{w}</li>
               ))}
@@ -312,129 +366,116 @@ export default function PayRuns() {
           )}
 
           {stubs.length === 0 ? (
-            <p className="text-sm text-gray-500">No one worked in this period.</p>
+            <div className="panel-body">
+              <p className="empty">No one worked in this period.</p>
+            </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+              {/* Phone: one row per person, net pay first */}
+              <ul className="xl:hidden">
+                {stubs.map((s) => (
+                  <li key={s.id} className="list-row items-start">
+                    <div className="min-w-0">
+                      <div className="font-semibold truncate">
+                        {String(s.details?.full_name ?? "Unknown")}
+                        {s.employee_type === "subcontractor" && (
+                          <span className="small faint font-normal"> · sub</span>
+                        )}
+                      </div>
+                      <div className="small muted">
+                        {Number(s.regular_hours).toFixed(2)} h
+                        {Number(s.overtime_hours) > 0 ? ` + ${Number(s.overtime_hours).toFixed(2)} h OT` : ""} ·
+                        Gross {money(s.gross)}
+                      </div>
+                      <div className="small faint">
+                        CPP {money(Number(s.cpp) + Number(s.cpp2))} · EI {money(s.ei)} · Tax{" "}
+                        {money(Number(s.federal_tax) + Number(s.provincial_tax))}
+                        {Number(s.gst) > 0 ? ` · GST ${money(s.gst)}` : ""}
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="font-semibold num">{money(s.net_pay)}</span>
+                      <a className="btn btn-text" href={`/paystub/${s.id}`} target="_blank" rel="noopener noreferrer">
+                        View
+                      </a>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+
+              {/* Tablet and desktop: full breakdown */}
+              <div className="table-wrap hidden xl:block px-1 pb-2">
+                <table className="data">
                   <thead>
-                    <tr className="border-b border-gray-300">
-                      <th className="text-left py-2 font-medium">Name</th>
-                      <th className="text-right py-2 font-medium">Reg hrs</th>
-                      <th className="text-right py-2 font-medium">OT hrs</th>
-                      <th className="text-right py-2 font-medium">Gross</th>
-                      <th className="text-right py-2 font-medium">CPP</th>
-                      <th className="text-right py-2 font-medium">EI</th>
-                      <th className="text-right py-2 font-medium">Tax</th>
-                      <th className="text-right py-2 font-medium">GST</th>
-                      <th className="text-right py-2 font-medium">Net Pay</th>
-                      <th className="py-2"></th>
+                    <tr>
+                      <th>Name</th>
+                      <th className="num">Reg hrs</th>
+                      <th className="num">OT hrs</th>
+                      <th className="num">Gross</th>
+                      <th className="num">CPP</th>
+                      <th className="num">EI</th>
+                      <th className="num">Tax</th>
+                      <th className="num">GST</th>
+                      <th className="num">Net pay</th>
+                      <th>
+                        <span className="sr-only">Pay stub</span>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {stubs.map((s) => (
-                      <tr key={s.id} className="border-b border-gray-100">
-                        <td className="py-2">
+                      <tr key={s.id}>
+                        <td className="whitespace-nowrap">
                           {String(s.details?.full_name ?? "Unknown")}
-                          {s.employee_type === "subcontractor" && (
-                            <span className="text-xs text-gray-500"> (sub)</span>
-                          )}
+                          {s.employee_type === "subcontractor" && <small>Subcontractor</small>}
                         </td>
-                        <td className="py-2 text-right">{Number(s.regular_hours).toFixed(2)}</td>
-                        <td className="py-2 text-right">{Number(s.overtime_hours).toFixed(2)}</td>
-                        <td className="py-2 text-right">{money(s.gross)}</td>
-                        <td className="py-2 text-right">{money(Number(s.cpp) + Number(s.cpp2))}</td>
-                        <td className="py-2 text-right">{money(s.ei)}</td>
-                        <td className="py-2 text-right">
-                          {money(Number(s.federal_tax) + Number(s.provincial_tax))}
-                        </td>
-                        <td className="py-2 text-right">{Number(s.gst) > 0 ? money(s.gst) : "—"}</td>
-                        <td className="py-2 text-right font-medium">{money(s.net_pay)}</td>
-                        <td className="py-2 text-right">
-                          <a
-                            href={`/paystub/${s.id}`}
-                            target="_blank"
-                            className="border border-gray-400 rounded px-3 py-1 text-xs hover:bg-gray-100"
-                          >
+                        <td className="num">{Number(s.regular_hours).toFixed(2)}</td>
+                        <td className="num">{Number(s.overtime_hours).toFixed(2)}</td>
+                        <td className="num">{money(s.gross)}</td>
+                        <td className="num">{money(Number(s.cpp) + Number(s.cpp2))}</td>
+                        <td className="num">{money(s.ei)}</td>
+                        <td className="num">{money(Number(s.federal_tax) + Number(s.provincial_tax))}</td>
+                        <td className="num">{Number(s.gst) > 0 ? money(s.gst) : <span className="faint">—</span>}</td>
+                        <td className="num font-semibold">{money(s.net_pay)}</td>
+                        <td className="num">
+                          <a className="btn btn-text" href={`/paystub/${s.id}`} target="_blank" rel="noopener noreferrer">
                             View
                           </a>
                         </td>
                       </tr>
                     ))}
-                    <tr className="font-medium">
-                      <td className="py-2" colSpan={3}>Total</td>
-                      <td className="py-2 text-right">{money(totalGross)}</td>
-                      <td className="py-2 text-right">{money(employeeCpp)}</td>
-                      <td className="py-2 text-right">{money(employeeEi)}</td>
-                      <td className="py-2 text-right">{money(tax)}</td>
-                      <td className="py-2 text-right">{money(sum("gst"))}</td>
-                      <td className="py-2 text-right">{money(totalNet)}</td>
-                      <td></td>
+                    <tr className="total">
+                      <td colSpan={3}>Total</td>
+                      <td className="num">{money(totalGross)}</td>
+                      <td className="num">{money(employeeCpp)}</td>
+                      <td className="num">{money(employeeEi)}</td>
+                      <td className="num">{money(tax)}</td>
+                      <td className="num">{money(sum("gst"))}</td>
+                      <td className="num">{money(totalNet)}</td>
+                      <td />
                     </tr>
                   </tbody>
                 </table>
               </div>
 
-              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                <div className="bg-gray-50 border border-gray-200 rounded px-3 py-2">
-                  <p className="font-medium mb-1">To pay staff (e-transfer)</p>
-                  <p>{money(totalNet)}</p>
+              <div className="grid sm:grid-cols-2 border-t border-[var(--border)] sm:divide-x divide-[var(--border)]">
+                <div className="stat">
+                  <span className="small muted">To pay staff (e-transfer)</span>
+                  <span className="v">{money(totalNet)}</span>
                 </div>
-                <div className="bg-gray-50 border border-gray-200 rounded px-3 py-2">
-                  <p className="font-medium mb-1">To remit to CRA</p>
-                  <p>{money(remittance)}</p>
-                  <p className="text-xs text-gray-500 mt-1">
+                <div className="stat border-t sm:border-t-0 border-[var(--border)]">
+                  <span className="small muted">To remit to CRA</span>
+                  <span className="v">{money(remittance)}</span>
+                  <span className="small faint">
                     CPP {money(employeeCpp)} + employer {money(employerCpp)} · EI {money(employeeEi)} +
                     employer {money(employerEi)} · Tax {money(tax)}
-                  </p>
+                  </span>
                 </div>
               </div>
             </>
           )}
-        </div>
+        </section>
       )}
-
-      {/* ---------- Past runs ---------- */}
-      <div className="border border-gray-300 rounded p-4">
-        <h2 className="font-semibold mb-3">Pay Runs</h2>
-        {runs.length === 0 ? (
-          <p className="text-sm text-gray-500">No pay runs yet.</p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-300">
-                <th className="text-left py-2 font-medium">Period</th>
-                <th className="text-left py-2 font-medium">Pay date</th>
-                <th className="text-left py-2 font-medium">Status</th>
-                <th className="text-left py-2 font-medium"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {runs.map((r) => (
-                <tr key={r.id} className="border-b border-gray-100">
-                  <td className="py-2">{periodLabel(r)}</td>
-                  <td className="py-2">{fmtDate(parseLocalDate(r.pay_date))}</td>
-                  <td className="py-2">
-                    {r.status === "finalized" ? (
-                      <span className="text-green-700">Finalized</span>
-                    ) : (
-                      <span className="text-amber-600">Draft</span>
-                    )}
-                  </td>
-                  <td className="py-2 text-right">
-                    <button
-                      onClick={() => openRun(r)}
-                      className="border border-gray-400 rounded px-3 py-1 text-xs hover:bg-gray-100"
-                    >
-                      Open
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
     </div>
   );
 }

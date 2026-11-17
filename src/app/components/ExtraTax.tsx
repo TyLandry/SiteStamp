@@ -11,11 +11,6 @@ export default function ExtraTax({ readOnly = false }: { readOnly?: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
 
-  useEffect(() => {
-    loadExtraTax();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   async function loadExtraTax() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
@@ -33,6 +28,12 @@ export default function ExtraTax({ readOnly = false }: { readOnly?: boolean }) {
     setAmount(data?.extra_tax_per_pay != null ? String(Number(data.extra_tax_per_pay)) : "0");
     setLoading(false);
   }
+
+  useEffect(() => {
+    // Start the load after the effect runs; the loading state already starts true
+    void Promise.resolve().then(loadExtraTax);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -68,42 +69,55 @@ export default function ExtraTax({ readOnly = false }: { readOnly?: boolean }) {
   }
 
   return (
-    <div className="border border-gray-300 rounded p-4">
-      <h2 className="font-semibold mb-1">Extra Tax</h2>
-      <p className="text-sm text-gray-500 mb-4">
-        Standard tax is taken off every paycheque automatically. If you&apos;d like extra
-        taken off (so you don&apos;t owe at tax time), enter an amount per paycheque.
-      </p>
+    <section className="panel" aria-labelledby="extratax-h">
+      <div className="panel-h">
+        <h2 id="extratax-h">Extra tax</h2>
+      </div>
+      <div className="panel-body flex flex-col gap-4">
+        <p className="hint">
+          Standard tax is taken off every paycheque automatically. If you&apos;d like extra taken off
+          (so you don&apos;t owe at tax time), enter an amount per paycheque.
+        </p>
 
-      {loading ? (
-        <p className="text-sm text-gray-500">Loading...</p>
-      ) : (
-        <form onSubmit={handleSave} className="flex flex-wrap items-end gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium">Extra tax per paycheque ($)</label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              disabled={readOnly}
-              className="border border-gray-400 rounded px-3 py-2 w-40 disabled:bg-gray-100 disabled:text-gray-500"
-            />
-          </div>
-          {!readOnly && (
-            <button
-              type="submit"
-              disabled={saving}
-              className="bg-gray-800 text-white rounded px-4 py-2 text-sm disabled:opacity-50"
-            >
-              {saving ? "Saving..." : "Save"}
-            </button>
-          )}
-        </form>
-      )}
-      {saved && <p className="text-green-600 text-sm mt-2">Saved. This applies from your next pay run.</p>}
-      {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
-    </div>
+        {loading ? (
+          <span className="skeleton h-9 w-40" aria-busy="true" />
+        ) : (
+          <form onSubmit={handleSave} className="flex flex-wrap items-end gap-3">
+            <div className="field w-44">
+              <label htmlFor="extra-tax">Extra per paycheque</label>
+              <div className="money">
+                <span>$</span>
+                <input
+                  id="extra-tax"
+                  className="input"
+                  type="number"
+                  inputMode="decimal"
+                  step="0.01"
+                  min="0"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  disabled={readOnly}
+                />
+              </div>
+            </div>
+            {!readOnly && (
+              <button type="submit" disabled={saving} className="btn btn-primary">
+                {saving ? "Saving…" : "Save"}
+              </button>
+            )}
+          </form>
+        )}
+        {saved && (
+          <p className="msg-ok" role="status">
+            Saved. This applies from your next pay run.
+          </p>
+        )}
+        {error && (
+          <p className="msg-error" role="alert">
+            {error}
+          </p>
+        )}
+      </div>
+    </section>
   );
 }

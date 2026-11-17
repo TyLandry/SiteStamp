@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 
-export default function LogoutButton() {
+export default function LogoutButton({ block = false }: { block?: boolean }) {
   const router = useRouter();
   const supabase = createClient();
 
@@ -13,11 +13,8 @@ export default function LogoutButton() {
   }
 
   return (
-    <button
-      onClick={handleLogout}
-      className="border border-gray-400 rounded px-4 py-2 text-sm hover:bg-gray-100"
-    >
-      Log Out
+    <button type="button" onClick={handleLogout} className={`btn${block ? " btn-block" : ""}`}>
+      Log out
     </button>
   );
 }

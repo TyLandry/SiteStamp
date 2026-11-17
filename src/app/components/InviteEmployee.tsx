@@ -48,74 +48,97 @@ export default function InviteEmployee() {
   }
 
   return (
-    <div className="border border-gray-300 rounded p-4">
-      <h2 className="font-semibold mb-4">Invite Employee</h2>
-      <form onSubmit={handleInvite} className="flex flex-wrap items-end gap-3">
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium">Full name</label>
+    <section className="panel" aria-labelledby="invite-h">
+      <div className="panel-h">
+        <h2 id="invite-h">Invite to crew</h2>
+      </div>
+      <form onSubmit={handleInvite} className="panel-body flex flex-col gap-4">
+        <p className="hint">
+          We email them a link to set a password. There&apos;s no public sign-up.
+        </p>
+        <div className="field">
+          <label htmlFor="invite-name">Full name</label>
           <input
+            id="invite-name"
+            className="input"
             type="text"
+            autoComplete="off"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             required
-            className="border border-gray-400 rounded px-3 py-2"
           />
         </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium">Email</label>
+        <div className="field">
+          <label htmlFor="invite-email">Email</label>
           <input
+            id="invite-email"
+            className="input"
             type="email"
+            autoComplete="off"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="border border-gray-400 rounded px-3 py-2"
           />
         </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium">Type</label>
-          <select
-            value={employeeType}
-            onChange={(e) =>
-              setEmployeeType(e.target.value as "employee" | "subcontractor")
-            }
-            className="border border-gray-400 rounded px-3 py-2"
-          >
-            <option value="employee">Employee</option>
-            <option value="subcontractor">Subcontractor</option>
-          </select>
-        </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium">Hourly wage ($)</label>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={hourlyWage}
-            onChange={(e) => setHourlyWage(e.target.value)}
-            className="border border-gray-400 rounded px-3 py-2 w-32"
-          />
+        <div className="grid grid-cols-2 gap-3">
+          <div className="field">
+            <label htmlFor="invite-type">Type</label>
+            <select
+              id="invite-type"
+              className="select"
+              value={employeeType}
+              onChange={(e) =>
+                setEmployeeType(e.target.value as "employee" | "subcontractor")
+              }
+            >
+              <option value="employee">Employee</option>
+              <option value="subcontractor">Subcontractor</option>
+            </select>
+          </div>
+          <div className="field">
+            <label htmlFor="invite-wage">Hourly wage</label>
+            <div className="money">
+              <span>$</span>
+              <input
+                id="invite-wage"
+                className="input"
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.01"
+                value={hourlyWage}
+                onChange={(e) => setHourlyWage(e.target.value)}
+              />
+            </div>
+          </div>
         </div>
         {employeeType === "subcontractor" && (
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium">GST number</label>
+          <div className="field">
+            <label htmlFor="invite-gst">GST number</label>
             <input
+              id="invite-gst"
+              className="input"
               type="text"
               value={gstNumber}
               onChange={(e) => setGstNumber(e.target.value)}
-              className="border border-gray-400 rounded px-3 py-2"
             />
+            <span className="hint">With a GST number, 5% GST is added to their payments.</span>
           </div>
         )}
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-gray-800 text-white rounded px-4 py-2 text-sm disabled:opacity-50"
-        >
-          {loading ? "Sending..." : "Send Invite"}
+        <button type="submit" disabled={loading} className="btn btn-primary btn-block">
+          {loading ? "Sending…" : "Send invite"}
         </button>
+        {message && (
+          <p className="msg-ok" role="status">
+            {message}
+          </p>
+        )}
+        {error && (
+          <p className="msg-error" role="alert">
+            {error}
+          </p>
+        )}
       </form>
-      {message && <p className="text-green-600 text-sm mt-3">{message}</p>}
-      {error && <p className="text-red-600 text-sm mt-3">{error}</p>}
-    </div>
+    </section>
   );
 }
