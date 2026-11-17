@@ -1,12 +1,12 @@
 "use client";
 
+import { PrintIcon } from "./ui/Icons";
+
 export default function PrintButton() {
   return (
-    <button
-      onClick={() => window.print()}
-      className="bg-gray-800 text-white rounded px-4 py-2 text-sm print:hidden"
-    >
-      Download / Print PDF
+    <button type="button" onClick={() => window.print()} className="btn btn-primary print:hidden">
+      <PrintIcon />
+      Download / print PDF
     </button>
   );
 }

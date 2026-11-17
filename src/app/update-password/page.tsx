@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
+import AuthCard from "../components/AuthCard";
 
 export default function UpdatePasswordPage() {
   const [password, setPassword] = useState("");
@@ -40,31 +41,31 @@ export default function UpdatePasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="w-full max-w-sm bg-white border border-gray-300 rounded p-8">
-        <h1 className="text-xl font-semibold mb-6">Set Your Password</h1>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium">New password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
-              className="border border-gray-400 rounded px-3 py-2"
-            />
-          </div>
-          {error && <p className="text-red-600 text-sm">{error}</p>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-gray-800 text-white rounded px-4 py-2 mt-2 disabled:opacity-50"
-          >
-            {loading ? "Saving..." : "Set Password"}
-          </button>
-        </form>
-      </div>
-    </div>
+    <AuthCard title="Set your password" subtitle="You'll use it with your email to log in.">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div className="field">
+          <label htmlFor="new-password">New password</label>
+          <input
+            id="new-password"
+            className="input"
+            type="password"
+            autoComplete="new-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            minLength={6}
+          />
+          <span className="hint">At least 6 characters.</span>
+        </div>
+        {error && (
+          <p className="msg-error" role="alert">
+            {error}
+          </p>
+        )}
+        <button type="submit" disabled={loading} className="btn btn-primary btn-block btn-lg mt-2">
+          {loading ? "Saving…" : "Set password"}
+        </button>
+      </form>
+    </AuthCard>
   );
 }

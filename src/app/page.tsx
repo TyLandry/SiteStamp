@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
+import AuthCard from "./components/AuthCard";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -44,40 +45,42 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="w-full max-w-sm bg-white border border-gray-300 rounded p-8">
-        <h1 className="text-xl font-semibold mb-6">Log In</h1>
-        <form onSubmit={handleLogin} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="border border-gray-400 rounded px-3 py-2"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="border border-gray-400 rounded px-3 py-2"
-            />
-          </div>
-          {error && <p className="text-red-600 text-sm">{error}</p>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-gray-800 text-white rounded px-4 py-2 mt-2 disabled:opacity-50"
-          >
-            {loading ? "Logging in..." : "Log In"}
-          </button>
-        </form>
-      </div>
-    </div>
+    <AuthCard title="Log in" subtitle="Clock in, check your hours and run payroll.">
+      <form onSubmit={handleLogin} className="flex flex-col gap-4">
+        <div className="field">
+          <label htmlFor="login-email">Email</label>
+          <input
+            id="login-email"
+            className="input"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="login-password">Password</label>
+          <input
+            id="login-password"
+            className="input"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+        {error && (
+          <p className="msg-error" role="alert">
+            {error}
+          </p>
+        )}
+        <button type="submit" disabled={loading} className="btn btn-primary btn-block btn-lg mt-2">
+          {loading ? "Logging in…" : "Log in"}
+        </button>
+        <p className="hint text-center">New to the crew? Ask your employer to send you an invite.</p>
+      </form>
+    </AuthCard>
   );
 }

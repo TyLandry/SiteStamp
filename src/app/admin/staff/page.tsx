@@ -1,9 +1,10 @@
-import Link from "next/link";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-import LogoutButton from "../../components/LogoutButton";
 import InviteEmployee from "../../components/InviteEmployee";
 import EmployeeList from "../../components/EmployeeList";
+
+export const metadata: Metadata = { title: "Crew & wages" };
 
 export default async function StaffPage() {
   const supabase = await createClient();
@@ -21,20 +22,22 @@ export default async function StaffPage() {
   if (profile?.role !== "employer") redirect("/employee");
 
   return (
-    <div className="max-w-5xl mx-auto p-8">
-      <div className="flex items-center justify-between mb-6">
+    <>
+      <div className="title-row">
         <div>
-          <Link href="/admin" className="text-sm text-gray-500 hover:underline">
-            ← Back to dashboard
-          </Link>
-          <h1 className="text-2xl font-semibold mt-1">Staff</h1>
+          <h1>Crew &amp; wages</h1>
+          <p className="finding">Wages, tax setup and who has access.</p>
         </div>
-        <LogoutButton />
+        <a className="btn btn-primary" href="#invite">
+          Invite to crew
+        </a>
       </div>
-      <div className="flex flex-col gap-6">
-        <InviteEmployee />
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_384px] items-start">
         <EmployeeList />
+        <div id="invite" className="scroll-mt-20">
+          <InviteEmployee />
+        </div>
       </div>
-    </div>
+    </>
   );
 }

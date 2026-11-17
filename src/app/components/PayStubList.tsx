@@ -48,48 +48,48 @@ export default function PayStubList() {
   }, []);
 
   return (
-    <div className="border border-gray-300 rounded p-4">
-      <h2 className="font-semibold mb-4">Pay Stubs</h2>
+    <section className="panel" aria-labelledby="stubs-h">
+      <div className="panel-h">
+        <h2 id="stubs-h">Pay stubs</h2>
+        {!loading && stubs.length > 0 ? <span className="small muted">{stubs.length}</span> : null}
+      </div>
 
-      {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
+      {error && (
+        <p className="msg-error px-4 pb-3" role="alert">
+          {error}
+        </p>
+      )}
 
       {loading ? (
-        <p className="text-sm text-gray-500">Loading...</p>
+        <div className="panel-body flex flex-col gap-3" aria-busy="true">
+          <span className="skeleton w-full" />
+          <span className="skeleton w-2/3" />
+        </div>
       ) : stubs.length === 0 ? (
-        <p className="text-sm text-gray-500">No pay stubs yet.</p>
+        <div className="panel-body">
+          <p className="empty">No pay stubs yet. They appear here once a pay run is finalized.</p>
+        </div>
       ) : (
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-300">
-              <th className="text-left py-2 font-medium">Pay date</th>
-              <th className="text-left py-2 font-medium">Period</th>
-              <th className="text-right py-2 font-medium">Gross</th>
-              <th className="text-right py-2 font-medium">Net</th>
-              <th className="py-2"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {stubs.map((s) => (
-              <tr key={s.id} className="border-b border-gray-100">
-                <td className="py-2">{fmtDate(parseLocalDate(s.pay_date))}</td>
-                <td className="py-2">
-                  {fmtDate(parseLocalDate(s.period_start))} – {fmtDate(parseLocalDate(s.period_end))}
-                </td>
-                <td className="py-2 text-right">{money(s.gross)}</td>
-                <td className="py-2 text-right font-medium">{money(s.net_pay)}</td>
-                <td className="py-2 text-right">
-                  <Link
-                    href={`/paystub/${s.id}`}
-                    className="border border-gray-400 rounded px-3 py-1 text-xs hover:bg-gray-100"
-                  >
-                    View
-                  </Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <ul>
+          {stubs.map((s) => (
+            <li key={s.id} className="list-row">
+              <div className="min-w-0">
+                <div className="font-semibold">Paid {fmtDate(parseLocalDate(s.pay_date))}</div>
+                <div className="small muted">
+                  {fmtDate(parseLocalDate(s.period_start))} – {fmtDate(parseLocalDate(s.period_end))} · Gross{" "}
+                  {money(s.gross)}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-semibold num">{money(s.net_pay)}</span>
+                <Link href={`/paystub/${s.id}`} className="btn btn-text">
+                  View
+                </Link>
+              </div>
+            </li>
+          ))}
+        </ul>
       )}
-    </div>
+    </section>
   );
 }

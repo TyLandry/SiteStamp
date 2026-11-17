@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
+import { formatDay, startOfDay } from "@/utils/format";
+import { Axis, Track, dayWindow, type Span } from "./ui/DayScale";
 
-type DayGroup = { date: string; hours: number };
+type DayGroup = { dayStart: Date; hours: number; spans: Span[] };
 
 export default function HoursSummary() {
   const [days, setDays] = useState<DayGroup[]>([]);
@@ -11,14 +13,13 @@ export default function HoursSummary() {
   const [range, setRange] = useState<"7" | "30" | "all">("7");
   const supabase = createClient();
 
-  useEffect(() => {
-    calculateHours();
-  }, [range]);
-
   async function calculateHours() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     let query = supabase
       .from("time_entries")
@@ -41,33 +42,47 @@ export default function HoursSummary() {
       return;
     }
 
-    const grouped: Record<string, number> = {};
+    // Group completed shifts by the local day they started on
+    const grouped = new Map<number, DayGroup>();
     entries.forEach((entry) => {
-      const dateKey = new Date(entry.clock_in).toLocaleDateString();
-      const hours =
-        (new Date(entry.clock_out).getTime() - new Date(entry.clock_in).getTime()) /
-        (1000 * 60 * 60);
-      grouped[dateKey] = (grouped[dateKey] || 0) + hours;
+      const start = new Date(entry.clock_in);
+      const end = new Date(entry.clock_out);
+      const dayStart = startOfDay(start);
+      const key = dayStart.getTime();
+      const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+      const group = grouped.get(key) ?? { dayStart, hours: 0, spans: [] };
+      group.hours += hours;
+      group.spans.push({ start, end });
+      grouped.set(key, group);
     });
 
-    const dayList = Object.entries(grouped)
-      .map(([date, hours]) => ({ date, hours }))
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-    setDays(dayList);
+    setDays([...grouped.values()].sort((a, b) => b.dayStart.getTime() - a.dayStart.getTime()));
     setLoading(false);
   }
 
+  useEffect(() => {
+    // Start the load after the effect runs; the loading state already starts true
+    void Promise.resolve().then(calculateHours);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [range]);
+
   const total = days.reduce((sum, d) => sum + d.hours, 0);
+  // Completed shifts only, so no now-line is needed; the scale still fits every shift
+  const reference = days.length > 0 ? days[0].dayStart : new Date(0);
+  const scale = dayWindow(days, reference);
 
   return (
-    <div className="border border-gray-300 rounded p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="font-semibold">Hours Worked</h2>
+    <section className="panel" aria-labelledby="hours-h">
+      <div className="panel-h items-center">
+        <h2 id="hours-h">Hours worked</h2>
+        <label className="sr-only" htmlFor="hours-range">
+          Range
+        </label>
         <select
+          id="hours-range"
+          className="select w-auto"
           value={range}
           onChange={(e) => setRange(e.target.value as "7" | "30" | "all")}
-          className="border border-gray-400 rounded px-2 py-1 text-sm"
         >
           <option value="7">Last 7 days</option>
           <option value="30">Last 30 days</option>
@@ -76,30 +91,42 @@ export default function HoursSummary() {
       </div>
 
       {loading ? (
-        <p className="text-sm text-gray-500">Loading...</p>
+        <div className="panel-body flex flex-col gap-3" aria-busy="true">
+          <span className="skeleton w-full" />
+          <span className="skeleton w-5/6" />
+        </div>
       ) : days.length === 0 ? (
-        <p className="text-sm text-gray-500">No completed shifts in this range.</p>
+        <div className="panel-body">
+          <p className="empty">No completed shifts in this range.</p>
+        </div>
       ) : (
         <>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-300">
-                <th className="text-left py-2 font-medium">Date</th>
-                <th className="text-left py-2 font-medium">Hours</th>
-              </tr>
-            </thead>
-            <tbody>
-              {days.map((d) => (
-                <tr key={d.date} className="border-b border-gray-100">
-                  <td className="py-2">{d.date}</td>
-                  <td className="py-2">{d.hours.toFixed(2)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="mt-3 font-semibold text-sm">Total: {total.toFixed(2)} hours</p>
+          <div className="scale-compact">
+            <Axis window={scale} />
+            {days.map((d) => (
+              <div className="lane" key={d.dayStart.getTime()}>
+                <div className="n">
+                  <span className="block">{formatDay(d.dayStart)}</span>
+                  <small className="block small faint">{d.hours.toFixed(2)} h</small>
+                </div>
+                <Track
+                  spans={d.spans}
+                  dayStart={d.dayStart}
+                  window={scale}
+                  now={new Date(0)}
+                  label={`${formatDay(d.dayStart)}: ${d.hours.toFixed(2)} hours`}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="title-block">
+            <span>Completed shifts only</span>
+            <span>
+              Total <b>{total.toFixed(2)} h</b>
+            </span>
+          </div>
         </>
       )}
-    </div>
+    </section>
   );
 }

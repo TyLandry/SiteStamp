@@ -1,9 +1,9 @@
-import Link from "next/link";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-import LogoutButton from "../components/LogoutButton";
-import EmployerHoursView from "../components/EmployerHoursView";
-import TimeOffApprovals from "../components/TimeOffApprovals";
+import TodayBoard from "../components/TodayBoard";
+
+export const metadata: Metadata = { title: "Today" };
 
 export default async function AdminDashboard() {
   const supabase = await createClient();
@@ -20,36 +20,5 @@ export default async function AdminDashboard() {
 
   if (profile?.role !== "employer") redirect("/employee");
 
-  return (
-    <div className="max-w-5xl mx-auto p-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold">Admin Dashboard</h1>
-        <div className="flex items-center gap-3">
-          <Link
-            href="/admin/staff"
-            className="border border-gray-400 rounded px-3 py-1.5 text-sm hover:bg-gray-100"
-          >
-            Staff
-          </Link>
-          <Link
-            href="/admin/settings"
-            className="border border-gray-400 rounded px-3 py-1.5 text-sm hover:bg-gray-100"
-          >
-            Settings
-          </Link>
-          <Link
-            href="/admin/payroll"
-            className="border border-gray-400 rounded px-3 py-1.5 text-sm hover:bg-gray-100"
-          >
-            Payroll
-          </Link>
-          <LogoutButton />
-        </div>
-      </div>
-      <div className="flex flex-col gap-6">
-        <TimeOffApprovals />
-        <EmployerHoursView />
-      </div>
-    </div>
-  );
+  return <TodayBoard />;
 }

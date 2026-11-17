@@ -15,6 +15,9 @@ import {
   splitHours,
   startOfWorkWeek,
 } from "@/utils/overtime";
+import { formatTime, mapLink } from "@/utils/format";
+import { Avatar } from "./ui/Marks";
+import { ChevronLeftIcon, ChevronRightIcon } from "./ui/Icons";
 
 type Settings = PaySettings & OvertimeSettings;
 
@@ -53,6 +56,23 @@ function round2(n: number) {
   return Math.round(n * 100) / 100;
 }
 
+function shortDateTime(value: string) {
+  const d = new Date(value);
+  return `${d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}, ${formatTime(d)}`;
+}
+
+function Location({ value }: { value: string | null }) {
+  if (!value) return <span className="faint">—</span>;
+  const href = mapLink(value);
+  return href ? (
+    <a className="coord underline underline-offset-2" href={href} target="_blank" rel="noopener noreferrer">
+      {value}
+    </a>
+  ) : (
+    <span className="coord">{value}</span>
+  );
+}
+
 export default function EmployerHoursView() {
   const supabase = createClient();
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -67,26 +87,6 @@ export default function EmployerHoursView() {
   const period = getPeriod(s, refDate);
   const today = new Date();
   const isCurrent = today >= period.start && today < addDays(period.end, 1);
-
-  // Load the company's pay + overtime settings once
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase
-        .from("org_settings")
-        .select(
-          "pay_frequency, period_anchor_date, overtime_enabled, overtime_daily_hours, overtime_weekly_hours, overtime_multiplier, work_week_start"
-        )
-        .maybeSingle();
-      setSettings(data ? { ...DEFAULT_SETTINGS, ...data } : DEFAULT_SETTINGS);
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (!settings) return;
-    loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings, period.start.getTime()]);
 
   async function loadData() {
     setLoading(true);
@@ -119,6 +119,26 @@ export default function EmployerHoursView() {
     setEntries((entriesRes.data as Entry[]) ?? []);
     setLoading(false);
   }
+
+  // Load the company's pay + overtime settings once
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("org_settings")
+        .select(
+          "pay_frequency, period_anchor_date, overtime_enabled, overtime_daily_hours, overtime_weekly_hours, overtime_multiplier, work_week_start"
+        )
+        .maybeSingle();
+      setSettings(data ? { ...DEFAULT_SETTINGS, ...data } : DEFAULT_SETTINGS);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!settings) return;
+    void Promise.resolve().then(loadData);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings, period.start.getTime()]);
 
   // Entries that actually belong to this period (for display + open shifts)
   const periodEnd = addDays(period.end, 1);
@@ -156,167 +176,287 @@ export default function EmployerHoursView() {
   const anyOpen = rows.some((r) => r.open > 0);
   const nameById = new Map(people.map((p) => [p.id, p.full_name ?? "Unknown"]));
 
+  const overtimeRule = s.overtime_enabled
+    ? `Overtime ${multiplier}× after ${
+        [
+          s.overtime_daily_hours != null ? `${Number(s.overtime_daily_hours)} h/day` : null,
+          s.overtime_weekly_hours != null ? `${Number(s.overtime_weekly_hours)} h/week` : null,
+        ]
+          .filter(Boolean)
+          .join(" or ") || "—"
+      }`
+    : "Overtime off";
+
   return (
-    <div className="border border-gray-300 rounded p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+    <>
+      <div className="title-row">
         <div>
-          <h2 className="font-semibold">Hours &amp; Pay</h2>
-          <p className="text-sm text-gray-500">
-            {fmtDate(period.start)} – {fmtDate(period.end)}
-            {isCurrent && " (current period)"}
-          </p>
-          <p className="text-xs text-gray-500">
-            {s.overtime_enabled
-              ? `Overtime: ${multiplier}× after ${
-                  [
-                    s.overtime_daily_hours != null ? `${Number(s.overtime_daily_hours)}h/day` : null,
-                    s.overtime_weekly_hours != null ? `${Number(s.overtime_weekly_hours)}h/week` : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" or ") || "—"
-                }`
-              : "Overtime: off"}
+          <h1>Hours &amp; pay</h1>
+          <p className="finding">
+            {settings ? (
+              <>
+                {fmtDate(period.start)} – {fmtDate(period.end)}
+                {isCurrent ? " · current period" : ""} · {overtimeRule}
+              </>
+            ) : (
+              <span className="skeleton inline-block w-56 align-middle" />
+            )}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setRefDate(addDays(period.start, -1))}
-            className="border border-gray-400 rounded px-3 py-1 text-xs hover:bg-gray-100"
-          >
-            ← Previous
+        <div className="flex items-center gap-2" role="group" aria-label="Pay period">
+          <button type="button" className="btn" onClick={() => setRefDate(addDays(period.start, -1))}>
+            <ChevronLeftIcon />
+            Previous
           </button>
-          <button
-            onClick={() => setRefDate(new Date())}
-            disabled={isCurrent}
-            className="border border-gray-400 rounded px-3 py-1 text-xs hover:bg-gray-100 disabled:opacity-40"
-          >
+          <button type="button" className="btn" onClick={() => setRefDate(new Date())} disabled={isCurrent}>
             Current
           </button>
           <button
+            type="button"
+            className="btn"
             onClick={() => setRefDate(addDays(period.end, 1))}
             disabled={isCurrent}
-            className="border border-gray-400 rounded px-3 py-1 text-xs hover:bg-gray-100 disabled:opacity-40"
           >
-            Next →
+            Next
+            <ChevronRightIcon />
           </button>
         </div>
       </div>
 
-      {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
-
-      {loading ? (
-        <p className="text-sm text-gray-500">Loading...</p>
-      ) : rows.length === 0 ? (
-        <p className="text-sm text-gray-500">No staff yet.</p>
-      ) : (
-        <>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-300">
-                <th className="text-left py-2 font-medium">Name</th>
-                <th className="text-left py-2 font-medium">Type</th>
-                <th className="text-right py-2 font-medium">Regular</th>
-                <th className="text-right py-2 font-medium">Overtime</th>
-                <th className="text-right py-2 font-medium">Wage</th>
-                <th className="text-right py-2 font-medium">Gross Pay</th>
-                <th className="text-left py-2 pl-4 font-medium"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id} className="border-b border-gray-100">
-                  <td className="py-2">
-                    {r.full_name ?? "—"}
-                    {r.status === "terminated" && (
-                      <span className="text-xs text-gray-500"> (terminated)</span>
-                    )}
-                  </td>
-                  <td className="py-2">
-                    {r.employee_type === "subcontractor" ? "Subcontractor" : "Employee"}
-                  </td>
-                  <td className="py-2 text-right">{r.regular.toFixed(2)}</td>
-                  <td className="py-2 text-right">
-                    {r.overtime > 0 ? r.overtime.toFixed(2) : <span className="text-gray-400">—</span>}
-                  </td>
-                  <td className="py-2 text-right">
-                    {r.wage != null ? money(r.wage) : <span className="text-gray-500">—</span>}
-                  </td>
-                  <td className="py-2 text-right">
-                    {r.gross != null ? (
-                      money(r.gross)
-                    ) : (
-                      <span className="text-amber-600 text-xs">Wage not set</span>
-                    )}
-                  </td>
-                  <td className="py-2 pl-4">
-                    {r.open > 0 && (
-                      <span className="text-amber-600 text-xs">
-                        {r.open} open shift{r.open > 1 ? "s" : ""}
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              <tr className="font-medium">
-                <td className="py-2" colSpan={2}>Total</td>
-                <td className="py-2 text-right">{totalRegular.toFixed(2)}</td>
-                <td className="py-2 text-right">{totalOvertime.toFixed(2)}</td>
-                <td></td>
-                <td className="py-2 text-right">{money(totalGross)}</td>
-                <td></td>
-              </tr>
-            </tbody>
-          </table>
-
-          {anyOpen && (
-            <p className="text-amber-600 text-xs mt-2">
-              Open shifts aren&apos;t counted until the person clocks out.
-            </p>
-          )}
-
-          <button
-            onClick={() => setShowDetails((v) => !v)}
-            className="text-sm text-gray-600 hover:underline mt-4"
-          >
-            {showDetails ? "Hide" : "Show"} shift details ({periodEntries.length})
+      {error ? (
+        <div className="panel panel-body pt-4 mb-4 flex flex-wrap items-center justify-between gap-3">
+          <p className="msg-error">Couldn&apos;t load hours: {error}</p>
+          <button type="button" className="btn" onClick={() => loadData()}>
+            Retry
           </button>
+        </div>
+      ) : null}
 
-          {showDetails && periodEntries.length > 0 && (
-            <table className="w-full text-sm mt-3">
-              <thead>
-                <tr className="border-b border-gray-300">
-                  <th className="text-left py-2 font-medium">Name</th>
-                  <th className="text-left py-2 font-medium">Clock In</th>
-                  <th className="text-left py-2 font-medium">Clock Out</th>
-                  <th className="text-right py-2 font-medium">Hours</th>
-                  <th className="text-left py-2 pl-4 font-medium">In Location</th>
-                  <th className="text-left py-2 font-medium">Out Location</th>
-                </tr>
-              </thead>
-              <tbody>
-                {periodEntries.map((e) => (
-                  <tr key={e.id} className="border-b border-gray-100">
-                    <td className="py-2">{nameById.get(e.profile_id) ?? "Unknown"}</td>
-                    <td className="py-2">{new Date(e.clock_in).toLocaleString()}</td>
-                    <td className="py-2">
-                      {e.clock_out ? (
-                        new Date(e.clock_out).toLocaleString()
+      <div className="stack">
+        <section
+          className="panel stat-row grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border)]"
+          aria-label="Period totals"
+        >
+          <div className="stat">
+            <span className="small muted">Regular</span>
+            <span className="v num text-left">{loading ? "—" : `${totalRegular.toFixed(2)} h`}</span>
+          </div>
+          <div className="stat">
+            <span className="small muted">Overtime</span>
+            <span className="v num text-left">{loading ? "—" : `${totalOvertime.toFixed(2)} h`}</span>
+          </div>
+          <div className="stat">
+            <span className="small muted">Gross pay</span>
+            <span className="v num text-left">{loading ? "—" : money(totalGross)}</span>
+          </div>
+        </section>
+
+        {anyOpen && !loading ? (
+          <p className="notice">Open shifts aren&apos;t counted until the person clocks out.</p>
+        ) : null}
+
+        <section className="panel" aria-labelledby="people-h">
+          <div className="panel-h">
+            <h2 id="people-h">By person</h2>
+            {!loading ? <span className="small muted">{rows.length} {rows.length === 1 ? "person" : "people"}</span> : null}
+          </div>
+
+          {loading ? (
+            <div className="panel-body flex flex-col gap-3" aria-busy="true">
+              <span className="skeleton w-full" />
+              <span className="skeleton w-5/6" />
+              <span className="skeleton w-2/3" />
+            </div>
+          ) : rows.length === 0 ? (
+            <div className="panel-body">
+              <p className="empty">No staff yet. Invite your crew from Crew &amp; wages.</p>
+            </div>
+          ) : (
+            <>
+              {/* Phone: two-line rows */}
+              <ul className="sm:hidden">
+                {rows.map((r) => (
+                  <li key={r.id} className="list-row items-start">
+                    <div className="person">
+                      <Avatar id={r.id} name={r.full_name} />
+                      <div className="n">
+                        <span>{r.full_name ?? "—"}</span>
+                        <small>
+                          {r.employee_type === "subcontractor" ? "Subcontractor" : "Employee"}
+                          {r.status === "terminated" ? " · terminated" : ""} · {r.regular.toFixed(2)} h
+                          {r.overtime > 0 ? ` + ${r.overtime.toFixed(2)} h OT` : ""}
+                        </small>
+                        {r.open > 0 ? (
+                          <span className="pill pill-warn mt-1">
+                            {r.open} open shift{r.open > 1 ? "s" : ""}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      {r.gross != null ? (
+                        <div className="font-semibold num">{money(r.gross)}</div>
                       ) : (
-                        <span className="text-amber-600">Still clocked in</span>
+                        <span className="pill pill-warn">Wage not set</span>
                       )}
-                    </td>
-                    <td className="py-2 text-right">
-                      {e.clock_out ? shiftHours(e).toFixed(2) : "—"}
-                    </td>
-                    <td className="py-2 pl-4 text-xs">{e.clock_in_location ?? "—"}</td>
-                    <td className="py-2 text-xs">{e.clock_out_location ?? "—"}</td>
-                  </tr>
+                      {r.wage != null ? <div className="small faint num">{money(r.wage)} /h</div> : null}
+                    </div>
+                  </li>
                 ))}
-              </tbody>
-            </table>
+              </ul>
+
+              {/* Tablet and desktop: table */}
+              <div className="table-wrap hidden sm:block px-1 pb-2">
+                <table className="data">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Type</th>
+                      <th className="num">Regular</th>
+                      <th className="num">Overtime</th>
+                      <th className="num">Wage</th>
+                      <th className="num">Gross pay</th>
+                      <th>
+                        <span className="sr-only">Open shifts</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((r) => (
+                      <tr key={r.id}>
+                        <td>
+                          <div className="person">
+                            <Avatar id={r.id} name={r.full_name} />
+                            <div className="n">
+                              <span>{r.full_name ?? "—"}</span>
+                              {r.status === "terminated" ? <small>Terminated</small> : null}
+                            </div>
+                          </div>
+                        </td>
+                        <td>{r.employee_type === "subcontractor" ? "Subcontractor" : "Employee"}</td>
+                        <td className="num">{r.regular.toFixed(2)}</td>
+                        <td className="num">
+                          {r.overtime > 0 ? r.overtime.toFixed(2) : <span className="faint">—</span>}
+                        </td>
+                        <td className="num">
+                          {r.wage != null ? money(r.wage) : <span className="faint">—</span>}
+                        </td>
+                        <td className="num font-semibold">
+                          {r.gross != null ? money(r.gross) : <span className="pill pill-warn">Wage not set</span>}
+                        </td>
+                        <td>
+                          {r.open > 0 ? (
+                            <span className="pill pill-warn">
+                              {r.open} open shift{r.open > 1 ? "s" : ""}
+                            </span>
+                          ) : null}
+                        </td>
+                      </tr>
+                    ))}
+                    <tr className="total">
+                      <td colSpan={2}>Total</td>
+                      <td className="num">{totalRegular.toFixed(2)}</td>
+                      <td className="num">{totalOvertime.toFixed(2)}</td>
+                      <td />
+                      <td className="num">{money(totalGross)}</td>
+                      <td />
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
-        </>
-      )}
-    </div>
+        </section>
+
+        {!loading && rows.length > 0 ? (
+          <section className="panel" aria-labelledby="shifts-h">
+            <div className="panel-h">
+              <h2 id="shifts-h">Shifts</h2>
+              <button
+                type="button"
+                className="btn btn-text"
+                aria-expanded={showDetails}
+                onClick={() => setShowDetails((v) => !v)}
+              >
+                {showDetails ? "Hide" : "Show"} shift details ({periodEntries.length})
+              </button>
+            </div>
+
+            {showDetails ? (
+              periodEntries.length === 0 ? (
+                <div className="panel-body">
+                  <p className="empty">No shifts in this period.</p>
+                </div>
+              ) : (
+                <>
+                  <ul className="sm:hidden">
+                    {periodEntries.map((e) => (
+                      <li key={e.id} className="list-row items-start">
+                        <div className="min-w-0">
+                          <div className="font-semibold truncate">{nameById.get(e.profile_id) ?? "Unknown"}</div>
+                          <div className="small muted">
+                            {shortDateTime(e.clock_in)} –{" "}
+                            {e.clock_out ? formatTime(e.clock_out) : "still clocked in"}
+                          </div>
+                          <div className="small mt-1 flex flex-col gap-0.5">
+                            <span>
+                              <span className="faint">In </span>
+                              <Location value={e.clock_in_location} />
+                            </span>
+                            <span>
+                              <span className="faint">Out </span>
+                              <Location value={e.clock_out_location} />
+                            </span>
+                          </div>
+                        </div>
+                        <div className="num whitespace-nowrap">
+                          {e.clock_out ? `${shiftHours(e).toFixed(2)} h` : <span className="pill pill-warn">Open</span>}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="table-wrap hidden sm:block px-1 pb-2">
+                    <table className="data">
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Clock in</th>
+                          <th>Clock out</th>
+                          <th className="num">Hours</th>
+                          <th>In location</th>
+                          <th>Out location</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {periodEntries.map((e) => (
+                          <tr key={e.id}>
+                            <td>{nameById.get(e.profile_id) ?? "Unknown"}</td>
+                            <td className="whitespace-nowrap">{shortDateTime(e.clock_in)}</td>
+                            <td className="whitespace-nowrap">
+                              {e.clock_out ? (
+                                shortDateTime(e.clock_out)
+                              ) : (
+                                <span className="pill pill-warn">Still clocked in</span>
+                              )}
+                            </td>
+                            <td className="num">{e.clock_out ? shiftHours(e).toFixed(2) : <span className="faint">—</span>}</td>
+                            <td>
+                              <Location value={e.clock_in_location} />
+                            </td>
+                            <td>
+                              <Location value={e.clock_out_location} />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )
+            ) : null}
+          </section>
+        ) : null}
+      </div>
+    </>
   );
 }

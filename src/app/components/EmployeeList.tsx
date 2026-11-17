@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
+import { Avatar } from "./ui/Marks";
 
 type Employee = {
   id: string;
@@ -17,7 +18,7 @@ type Employee = {
 };
 
 function money(n: number) {
-  return `$${Number(n).toFixed(2)}`;
+  return Number(n).toLocaleString("en-CA", { style: "currency", currency: "CAD" });
 }
 
 function td1Label(emp: Employee) {
@@ -29,6 +30,10 @@ function td1Label(emp: Employee) {
   }
   return "Basic";
 }
+
+// One template for the header and every row; the actions column is fixed so the
+// header (which has no buttons) and the rows resolve to the same column widths.
+const GRID = "sm:grid sm:grid-cols-[minmax(0,1.6fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_minmax(0,1.2fr)_176px] sm:items-center sm:gap-3";
 
 export default function EmployeeList() {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -45,11 +50,6 @@ export default function EmployeeList() {
   const [error, setError] = useState<string | null>(null);
   const [showTerminated, setShowTerminated] = useState(false);
   const supabase = createClient();
-
-  useEffect(() => {
-    loadEmployees();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   async function loadEmployees() {
     setLoading(true);
@@ -74,6 +74,12 @@ export default function EmployeeList() {
     setClockedIn(new Set((openShifts ?? []).map((s) => s.profile_id)));
     setLoading(false);
   }
+
+  useEffect(() => {
+    // Start the load after the effect runs; the loading state already starts true
+    void Promise.resolve().then(loadEmployees);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function startEdit(employee: Employee) {
     setError(null);
@@ -180,205 +186,298 @@ export default function EmployeeList() {
 
   const active = employees.filter((e) => e.status !== "terminated");
   const terminated = employees.filter((e) => e.status === "terminated");
+  // Fall back to the active list once nobody is left on the terminated one
+  const viewingTerminated = showTerminated && terminated.length > 0;
+  const list = viewingTerminated ? terminated : active;
 
-  function renderTable(list: Employee[], isTerminatedList: boolean) {
+  function renderEditor(emp: Employee) {
+    const isSub = emp.employee_type === "subcontractor";
     return (
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-gray-300">
-            <th className="text-left py-2 font-medium">Name</th>
-            <th className="text-left py-2 font-medium">Type</th>
-            <th className="text-left py-2 font-medium">Status</th>
-            <th className="text-left py-2 font-medium">Hourly Wage</th>
-            <th className="text-left py-2 font-medium">Extra Tax / Pay</th>
-            <th className="text-left py-2 font-medium">TD1</th>
-            <th className="text-left py-2 font-medium"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {list.map((emp) => {
-            const isClockedIn = clockedIn.has(emp.id);
-            const isEditing = editingId === emp.id;
-            const isSub = emp.employee_type === "subcontractor";
-            return (
-              <tr key={emp.id} className="border-b border-gray-100">
-                <td className="py-2">{emp.full_name ?? "—"}</td>
-                <td className="py-2">{isSub ? "Subcontractor" : "Employee"}</td>
-                <td className="py-2">
-                  {isTerminatedList
-                    ? `Terminated · ${
-                        emp.terminated_at
-                          ? new Date(emp.terminated_at).toLocaleDateString()
-                          : ""
-                      }`
-                    : "Active"}
-                </td>
-                <td className="py-2">
-                  {isEditing ? (
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={wageInput}
-                      onChange={(e) => setWageInput(e.target.value)}
-                      className="border border-gray-400 rounded px-2 py-1 w-24"
-                    />
-                  ) : emp.hourly_wage != null ? (
-                    money(emp.hourly_wage)
-                  ) : (
-                    "Not set"
-                  )}
-                </td>
-                <td className="py-2">
-                  {isSub ? (
-                    <span className="text-gray-400">—</span>
-                  ) : isEditing ? (
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={extraInput}
-                      onChange={(e) => setExtraInput(e.target.value)}
-                      className="border border-gray-400 rounded px-2 py-1 w-24"
-                    />
-                  ) : Number(emp.extra_tax_per_pay ?? 0) > 0 ? (
-                    money(Number(emp.extra_tax_per_pay))
-                  ) : (
-                    <span className="text-gray-400">None</span>
-                  )}
-                </td>
-                <td className="py-2">
-                  {isSub ? (
-                    <span className="text-gray-400">—</span>
-                  ) : isEditing ? (
-                    <div className="flex flex-col gap-1">
-                      <select
-                        value={td1Mode}
-                        onChange={(e) => setTd1Mode(e.target.value as "basic" | "zero" | "custom")}
-                        className="border border-gray-400 rounded px-2 py-1 text-xs"
-                      >
-                        <option value="basic">Basic (default)</option>
-                        <option value="zero">No claim ($0) – second job</option>
-                        <option value="custom">Custom (from TD1 forms)</option>
-                      </select>
-                      {td1Mode === "custom" && (
-                        <div className="flex gap-1">
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            placeholder="Federal"
-                            value={fedClaimInput}
-                            onChange={(e) => setFedClaimInput(e.target.value)}
-                            className="border border-gray-400 rounded px-2 py-1 w-24 text-xs"
-                          />
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            placeholder="Alberta"
-                            value={provClaimInput}
-                            onChange={(e) => setProvClaimInput(e.target.value)}
-                            className="border border-gray-400 rounded px-2 py-1 w-24 text-xs"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <span className={emp.td1_mode && emp.td1_mode !== "basic" ? "" : "text-gray-400"}>
-                      {td1Label(emp)}
-                    </span>
-                  )}
-                </td>
-                <td className="py-2">
-                  <div className="flex items-center gap-2">
-                    {isEditing ? (
-                      <>
-                        <button
-                          onClick={() => saveEdit(emp)}
-                          disabled={saving}
-                          className="bg-gray-800 text-white rounded px-3 py-1 text-xs disabled:opacity-50"
-                        >
-                          {saving ? "Saving..." : "Save"}
-                        </button>
-                        <button
-                          onClick={cancelEdit}
-                          className="border border-gray-400 rounded px-3 py-1 text-xs hover:bg-gray-100"
-                        >
-                          Cancel
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        onClick={() => startEdit(emp)}
-                        className="border border-gray-400 rounded px-3 py-1 text-xs hover:bg-gray-100"
-                      >
-                        Edit
-                      </button>
-                    )}
-
-                    {isTerminatedList ? (
-                      <button
-                        onClick={() => reactivate(emp)}
-                        disabled={busyId === emp.id}
-                        className="border border-gray-400 rounded px-3 py-1 text-xs hover:bg-gray-100 disabled:opacity-50"
-                      >
-                        Reactivate
-                      </button>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => terminate(emp)}
-                          disabled={isClockedIn || busyId === emp.id}
-                          className="text-red-600 text-xs px-2 py-1 hover:underline disabled:opacity-40 disabled:no-underline"
-                        >
-                          Terminate
-                        </button>
-                        {isClockedIn && (
-                          <span className="text-xs text-gray-500">Clocked in</span>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <div className="mt-3 rounded-md border border-[var(--border)] bg-[var(--red-50)] p-3 sm:col-span-5">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="field">
+            <label htmlFor={`wage-${emp.id}`}>Hourly wage</label>
+            <div className="money">
+              <span>$</span>
+              <input
+                id={`wage-${emp.id}`}
+                className="input"
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                min="0"
+                value={wageInput}
+                onChange={(e) => setWageInput(e.target.value)}
+              />
+            </div>
+          </div>
+          {!isSub ? (
+            <>
+              <div className="field">
+                <label htmlFor={`extra-${emp.id}`}>Extra tax per paycheque</label>
+                <div className="money">
+                  <span>$</span>
+                  <input
+                    id={`extra-${emp.id}`}
+                    className="input"
+                    type="number"
+                    inputMode="decimal"
+                    step="0.01"
+                    min="0"
+                    value={extraInput}
+                    onChange={(e) => setExtraInput(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="field">
+                <label htmlFor={`td1-${emp.id}`}>TD1 claim</label>
+                <select
+                  id={`td1-${emp.id}`}
+                  className="select"
+                  value={td1Mode}
+                  onChange={(e) => setTd1Mode(e.target.value as "basic" | "zero" | "custom")}
+                >
+                  <option value="basic">Basic (default)</option>
+                  <option value="zero">No claim ($0) – second job</option>
+                  <option value="custom">Custom (from TD1 forms)</option>
+                </select>
+              </div>
+            </>
+          ) : (
+            <p className="hint sm:col-span-2 self-end pb-2">
+              Subcontractors have no tax deductions, so extra tax and TD1 don&apos;t apply.
+            </p>
+          )}
+          {!isSub && td1Mode === "custom" ? (
+            <>
+              <div className="field">
+                <label htmlFor={`fed-${emp.id}`}>Federal TD1 total</label>
+                <div className="money">
+                  <span>$</span>
+                  <input
+                    id={`fed-${emp.id}`}
+                    className="input"
+                    type="number"
+                    inputMode="decimal"
+                    step="0.01"
+                    min="0"
+                    value={fedClaimInput}
+                    onChange={(e) => setFedClaimInput(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="field">
+                <label htmlFor={`prov-${emp.id}`}>Alberta TD1 total</label>
+                <div className="money">
+                  <span>$</span>
+                  <input
+                    id={`prov-${emp.id}`}
+                    className="input"
+                    type="number"
+                    inputMode="decimal"
+                    step="0.01"
+                    min="0"
+                    value={provClaimInput}
+                    onChange={(e) => setProvClaimInput(e.target.value)}
+                  />
+                </div>
+              </div>
+            </>
+          ) : null}
+        </div>
+        {error ? (
+          <p className="msg-error mt-3" role="alert">
+            {error}
+          </p>
+        ) : null}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button type="button" className="btn btn-primary" onClick={() => saveEdit(emp)} disabled={saving}>
+            {saving ? "Saving…" : "Save"}
+          </button>
+          <button type="button" className="btn btn-text" onClick={cancelEdit}>
+            Cancel
+          </button>
+          <span className="hint">Only employers can change wages and tax setup.</span>
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="border border-gray-300 rounded p-4">
-      <h2 className="font-semibold mb-4">Employees</h2>
+    <section className="panel" aria-labelledby="crew-h">
+      <div className="panel-h">
+        <h2 id="crew-h">Crew</h2>
+        {!loading ? (
+          <span className="small muted">
+            {active.length} active{terminated.length > 0 ? ` · ${terminated.length} terminated` : ""}
+          </span>
+        ) : null}
+      </div>
 
-      {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
+      {!loading && terminated.length > 0 ? (
+        <div className="tabs px-4" role="tablist" aria-label="Crew status">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={!viewingTerminated}
+            onClick={() => setShowTerminated(false)}
+          >
+            Active <span className="faint font-normal">{active.length}</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={viewingTerminated}
+            onClick={() => setShowTerminated(true)}
+          >
+            Terminated <span className="faint font-normal">{terminated.length}</span>
+          </button>
+        </div>
+      ) : null}
+
+      {error && !editingId ? (
+        <p className="msg-error px-4 pt-3" role="alert">
+          {error}
+        </p>
+      ) : null}
 
       {loading ? (
-        <p className="text-sm text-gray-500">Loading...</p>
-      ) : active.length === 0 ? (
-        <p className="text-sm text-gray-500">No active employees.</p>
-      ) : (
-        renderTable(active, false)
-      )}
-
-      {!loading && terminated.length > 0 && (
-        <div className="mt-4">
-          <button
-            onClick={() => setShowTerminated((v) => !v)}
-            className="text-sm text-gray-600 hover:underline"
-          >
-            {showTerminated ? "Hide" : "Show"} terminated ({terminated.length})
-          </button>
-          {showTerminated && (
-            <div className="mt-3">
-              <h3 className="font-medium text-sm mb-2">Terminated</h3>
-              {renderTable(terminated, true)}
-            </div>
-          )}
+        <div className="panel-body flex flex-col gap-3" aria-busy="true">
+          <span className="skeleton w-full" />
+          <span className="skeleton w-5/6" />
+          <span className="skeleton w-2/3" />
         </div>
+      ) : list.length === 0 ? (
+        <div className="panel-body pt-3">
+          <p className="empty">
+            {viewingTerminated ? "No terminated crew." : "No active crew yet. Send an invite to get started."}
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className={`hidden ${GRID} px-4 pt-3 pb-1 small faint`} aria-hidden="true">
+            <span>Name</span>
+            <span className="text-right">Hourly wage</span>
+            <span className="text-right">Extra tax / pay</span>
+            <span className="sm:pl-4">TD1</span>
+            <span />
+          </div>
+          <ul>
+            {list.map((emp) => {
+              const isClockedIn = clockedIn.has(emp.id);
+              const isEditing = editingId === emp.id;
+              const isSub = emp.employee_type === "subcontractor";
+              const isTerminatedList = emp.status === "terminated";
+              return (
+                <li
+                  key={emp.id}
+                  className={`border-t border-[var(--rule)] px-4 py-3 ${GRID} ${isEditing ? "bg-[var(--red-50)]" : ""}`}
+                >
+                  <div className="flex items-start justify-between gap-3 sm:block min-w-0">
+                    <div className="person">
+                      <Avatar id={emp.id} name={emp.full_name} />
+                      <div className="n">
+                        <span>{emp.full_name ?? "—"}</span>
+                        <small>
+                          {isSub ? "Subcontractor" : "Employee"} ·{" "}
+                          {isTerminatedList
+                            ? `Terminated${
+                                emp.terminated_at ? ` ${new Date(emp.terminated_at).toLocaleDateString()}` : ""
+                              }`
+                            : isClockedIn
+                              ? "On the clock"
+                              : "Active"}
+                        </small>
+                      </div>
+                    </div>
+                    <div className="sm:hidden text-right font-semibold num whitespace-nowrap">
+                      {emp.hourly_wage != null ? (
+                        <>
+                          {money(emp.hourly_wage)}
+                          <span className="small faint font-normal"> /h</span>
+                        </>
+                      ) : (
+                        <span className="pill pill-warn">Wage not set</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="hidden sm:block text-right font-semibold num whitespace-nowrap">
+                    {emp.hourly_wage != null ? (
+                      <>
+                        {money(emp.hourly_wage)}
+                        <span className="small faint font-normal"> /h</span>
+                      </>
+                    ) : (
+                      <span className="pill pill-warn">Not set</span>
+                    )}
+                  </div>
+                  <div className="hidden sm:block text-right num">
+                    {isSub ? (
+                      <span className="faint">—</span>
+                    ) : Number(emp.extra_tax_per_pay ?? 0) > 0 ? (
+                      money(Number(emp.extra_tax_per_pay))
+                    ) : (
+                      <span className="faint">None</span>
+                    )}
+                  </div>
+                  <div className="hidden sm:block min-w-0 truncate sm:pl-4">
+                    {isSub ? (
+                      <span className="faint">—</span>
+                    ) : (
+                      <span className={emp.td1_mode && emp.td1_mode !== "basic" ? "" : "faint"}>
+                        {td1Label(emp)}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Phone: tax setup as a second line */}
+                  {!isSub ? (
+                    <p className="sm:hidden small muted mt-1 pl-[38px]">
+                      Extra tax{" "}
+                      {Number(emp.extra_tax_per_pay ?? 0) > 0 ? money(Number(emp.extra_tax_per_pay)) : "none"} · TD1{" "}
+                      {td1Label(emp)}
+                    </p>
+                  ) : null}
+
+                  <div className="mt-2 sm:mt-0 flex flex-wrap items-center gap-1 sm:justify-end pl-[38px] sm:pl-0">
+                    {!isEditing ? (
+                      <button type="button" className="btn btn-text" onClick={() => startEdit(emp)}>
+                        Edit
+                      </button>
+                    ) : null}
+                    {isTerminatedList ? (
+                      <button
+                        type="button"
+                        className="btn btn-text"
+                        onClick={() => reactivate(emp)}
+                        disabled={busyId === emp.id}
+                      >
+                        Reactivate
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn btn-text btn-danger"
+                        onClick={() => terminate(emp)}
+                        disabled={isClockedIn || busyId === emp.id}
+                        title={isClockedIn ? "Can't terminate while they're clocked in" : undefined}
+                      >
+                        Terminate
+                      </button>
+                    )}
+                  </div>
+
+                  {isEditing ? renderEditor(emp) : null}
+                </li>
+              );
+            })}
+          </ul>
+          {!viewingTerminated && active.some((e) => clockedIn.has(e.id)) ? (
+            <p className="title-block">People on the clock can&apos;t be terminated until they clock out.</p>
+          ) : null}
+        </>
       )}
-    </div>
+    </section>
   );
 }

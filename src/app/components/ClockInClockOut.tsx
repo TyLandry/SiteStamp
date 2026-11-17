@@ -2,26 +2,33 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
+import { formatDay, formatDuration, formatTime } from "@/utils/format";
+import { PinIcon } from "./ui/Icons";
+import { useNow } from "./useNow";
+
+type ActiveEntry = { id: string; clock_in: string; clock_in_location: string | null };
 
 export default function ClockInOut({ readOnly = false }: { readOnly?: boolean }) {
   const [loading, setLoading] = useState(false);
-  const [activeEntry, setActiveEntry] = useState<{ id: string; clock_in: string } | null>(null);
+  // Until the first check returns we don't know if a shift is open, so the
+  // clock-in button stays disabled (prevents a second open shift).
+  const [checking, setChecking] = useState(true);
+  const [activeEntry, setActiveEntry] = useState<ActiveEntry | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
-
-  useEffect(() => {
-    checkActiveEntry();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const now = useNow();
 
   async function checkActiveEntry() {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      setChecking(false);
+      return;
+    }
 
     const { data } = await supabase
       .from("time_entries")
-      .select("id, clock_in")
+      .select("id, clock_in, clock_in_location")
       .eq("profile_id", user.id)
       .is("clock_out", null)
       .order("clock_in", { ascending: false })
@@ -29,7 +36,14 @@ export default function ClockInOut({ readOnly = false }: { readOnly?: boolean })
       .maybeSingle();
 
     setActiveEntry(data);
+    setChecking(false);
   }
+
+  useEffect(() => {
+    // Start the load after the effect runs; the loading state already starts true
+    void Promise.resolve().then(checkActiveEntry);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function getLocation(): Promise<string | null> {
     return new Promise((resolve) => {
@@ -67,7 +81,7 @@ export default function ClockInOut({ readOnly = false }: { readOnly?: boolean })
       .single();
 
     const location = await getLocation();
-    if (!location) setLocationError("Could not get location — clocked in without it.");
+    if (!location) setLocationError("Could not get your location, so you were clocked in without it.");
 
     const { error: insertError } = await supabase.from("time_entries").insert({
       profile_id: user.id,
@@ -91,7 +105,7 @@ export default function ClockInOut({ readOnly = false }: { readOnly?: boolean })
     setError(null);
 
     const location = await getLocation();
-    if (!location) setLocationError("Could not get location — clocked out without it.");
+    if (!location) setLocationError("Could not get your location, so you were clocked out without it.");
 
     const { error: updateError } = await supabase
       .from("time_entries")
@@ -109,37 +123,93 @@ export default function ClockInOut({ readOnly = false }: { readOnly?: boolean })
     setLoading(false);
   }
 
-  return (
-    <div className="border border-gray-300 rounded p-4">
-      <h2 className="font-semibold mb-3">Clock In / Out</h2>
-      {activeEntry ? (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-600">
-            Clocked in since {new Date(activeEntry.clock_in).toLocaleTimeString()}
-          </p>
-          {!readOnly && (
+  const messages = (
+    <>
+      {locationError && (
+        <p className="notice mt-3" role="status">
+          {locationError}
+        </p>
+      )}
+      {error && (
+        <p className="msg-error mt-3" role="alert">
+          {error}
+        </p>
+      )}
+    </>
+  );
+
+  if (checking) {
+    return (
+      <section className="panel p-4 flex flex-col gap-3" aria-busy="true" aria-label="Clock">
+        <span className="skeleton w-32" />
+        <span className="skeleton h-10 w-40" />
+        <span className="skeleton h-14 w-full" />
+      </section>
+    );
+  }
+
+  if (activeEntry) {
+    const start = new Date(activeEntry.clock_in);
+    return (
+      <section className="panel p-4" aria-labelledby="clock-h">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 id="clock-h" className="text-base font-semibold">
+            On the clock
+          </h2>
+          <span className="sheet-no">IN {formatTime(start).toUpperCase()}</span>
+        </div>
+        <p className="mt-4 text-4xl leading-10 font-semibold tracking-tight num text-left">
+          {formatDuration(now.getTime() - start.getTime())}
+        </p>
+        <p className="small muted mt-1">
+          Clocked in {formatTime(start)} · {formatDay(start)}
+        </p>
+        <p className="mt-3 flex items-start gap-2 small muted">
+          <PinIcon />
+          {activeEntry.clock_in_location
+            ? `Location recorded at clock-in: ${activeEntry.clock_in_location}`
+            : "No location was recorded at clock-in."}
+        </p>
+        {!readOnly && (
+          <>
             <button
+              type="button"
               onClick={handleClockOut}
               disabled={loading}
-              className="bg-gray-800 text-white rounded px-4 py-2 text-sm disabled:opacity-50"
+              className="btn btn-primary btn-lg btn-block mt-5"
             >
-              {loading ? "..." : "Clock Out"}
+              {loading ? "Clocking out…" : "Clock out"}
             </button>
-          )}
-        </div>
-      ) : readOnly ? (
-        <p className="text-sm text-gray-600">Clocked out</p>
+            <p className="hint text-center mt-2">Your location is recorded again when you clock out.</p>
+          </>
+        )}
+        {messages}
+      </section>
+    );
+  }
+
+  return (
+    <section className="panel p-4" aria-labelledby="clock-h">
+      <h2 id="clock-h" className="text-base font-semibold">
+        Off the clock
+      </h2>
+      {readOnly ? (
+        <p className="muted mt-2">Clocked out</p>
       ) : (
-        <button
-          onClick={handleClockIn}
-          disabled={loading}
-          className="bg-gray-800 text-white rounded px-4 py-2 text-sm disabled:opacity-50"
-        >
-          {loading ? "..." : "Clock In"}
-        </button>
+        <>
+          <p className="muted mt-1">Clock in when you start work on site.</p>
+          <button
+            type="button"
+            onClick={handleClockIn}
+            disabled={loading}
+            className="btn btn-primary btn-lg btn-block mt-5"
+          >
+            {loading ? "Clocking in…" : "Clock in"}
+          </button>
+          <p className="hint text-center mt-2">Your location is recorded when you clock in.</p>
+        </>
       )}
-      {locationError && <p className="text-amber-600 text-sm mt-2">{locationError}</p>}
-      {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
-    </div>
+      {messages}
+    </section>
   );
 }
