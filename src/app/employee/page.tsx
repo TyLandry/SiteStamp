@@ -4,7 +4,8 @@ import LogoutButton from "../components/LogoutButton";
 import ClockInOut from "../components/ClockInClockOut";
 import HoursSummary from "../components/HoursSummary";
 import TimeOffRequests from "../components/TimeOffRequests";
-import TaxInfo from "../components/TaxInfo";
+import PayStubList from "../components/PayStubList";
+import ExtraTax from "../components/ExtraTax";
 
 export default async function EmployeeDashboard() {
   const supabase = await createClient();
@@ -40,8 +41,9 @@ export default async function EmployeeDashboard() {
       <div className="flex flex-col gap-6">
         <ClockInOut readOnly={readOnly} />
         <HoursSummary />
+        <PayStubList />
         <TimeOffRequests readOnly={readOnly} />
-        <TaxInfo readOnly={readOnly} />
+                <ExtraTax readOnly={readOnly} />
       </div>
     </div>
   );

@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 
-export default function TaxInfo({ readOnly = false }: { readOnly?: boolean }) {
-  const [claimAmount, setClaimAmount] = useState("");
+export default function ExtraTax({ readOnly = false }: { readOnly?: boolean }) {
+  const [amount, setAmount] = useState("");
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -12,11 +12,11 @@ export default function TaxInfo({ readOnly = false }: { readOnly?: boolean }) {
   const supabase = createClient();
 
   useEffect(() => {
-    loadTaxInfo();
+    loadExtraTax();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function loadTaxInfo() {
+  async function loadExtraTax() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -26,13 +26,11 @@ export default function TaxInfo({ readOnly = false }: { readOnly?: boolean }) {
 
     const { data } = await supabase
       .from("profiles")
-      .select("tax_claim_amount")
+      .select("extra_tax_per_pay")
       .eq("id", user.id)
       .single();
 
-    if (data?.tax_claim_amount != null) {
-      setClaimAmount(String(data.tax_claim_amount));
-    }
+    setAmount(data?.extra_tax_per_pay != null ? String(Number(data.extra_tax_per_pay)) : "0");
     setLoading(false);
   }
 
@@ -41,9 +39,9 @@ export default function TaxInfo({ readOnly = false }: { readOnly?: boolean }) {
     setError(null);
     setSaved(false);
 
-    const amount = parseFloat(claimAmount);
-    if (claimAmount.trim() === "" || Number.isNaN(amount) || amount < 0) {
-      setError("Enter a valid amount (0 or more).");
+    const value = amount.trim() === "" ? 0 : parseFloat(amount);
+    if (Number.isNaN(value) || value < 0) {
+      setError("Enter an amount of 0 or more.");
       return;
     }
 
@@ -57,12 +55,13 @@ export default function TaxInfo({ readOnly = false }: { readOnly?: boolean }) {
 
     const { error: updateError } = await supabase
       .from("profiles")
-      .update({ tax_claim_amount: amount })
+      .update({ extra_tax_per_pay: value })
       .eq("id", user.id);
 
     if (updateError) {
       setError("Could not save. Try again.");
     } else {
+      setAmount(String(value));
       setSaved(true);
     }
     setSaving(false);
@@ -70,9 +69,10 @@ export default function TaxInfo({ readOnly = false }: { readOnly?: boolean }) {
 
   return (
     <div className="border border-gray-300 rounded p-4">
-      <h2 className="font-semibold mb-1">Tax Information</h2>
+      <h2 className="font-semibold mb-1">Extra Tax</h2>
       <p className="text-sm text-gray-500 mb-4">
-        Enter your total tax claim amount from your TD1 form.
+        Standard tax is taken off every paycheque automatically. If you&apos;d like extra
+        taken off (so you don&apos;t owe at tax time), enter an amount per paycheque.
       </p>
 
       {loading ? (
@@ -80,14 +80,13 @@ export default function TaxInfo({ readOnly = false }: { readOnly?: boolean }) {
       ) : (
         <form onSubmit={handleSave} className="flex flex-wrap items-end gap-3">
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium">Tax claim amount ($)</label>
+            <label className="text-sm font-medium">Extra tax per paycheque ($)</label>
             <input
               type="number"
               step="0.01"
               min="0"
-              value={claimAmount}
-              onChange={(e) => setClaimAmount(e.target.value)}
-              required
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
               disabled={readOnly}
               className="border border-gray-400 rounded px-3 py-2 w-40 disabled:bg-gray-100 disabled:text-gray-500"
             />
@@ -103,7 +102,7 @@ export default function TaxInfo({ readOnly = false }: { readOnly?: boolean }) {
           )}
         </form>
       )}
-      {saved && <p className="text-green-600 text-sm mt-2">Saved.</p>}
+      {saved && <p className="text-green-600 text-sm mt-2">Saved. This applies from your next pay run.</p>}
       {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
     </div>
   );

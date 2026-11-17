@@ -32,11 +32,17 @@ export default async function AdminDashboard() {
             Staff
           </Link>
           <Link
-  href="/admin/settings"
-  className="border border-gray-400 rounded px-3 py-1.5 text-sm hover:bg-gray-100"
->
-  Settings
-</Link>
+            href="/admin/settings"
+            className="border border-gray-400 rounded px-3 py-1.5 text-sm hover:bg-gray-100"
+          >
+            Settings
+          </Link>
+          <Link
+            href="/admin/payroll"
+            className="border border-gray-400 rounded px-3 py-1.5 text-sm hover:bg-gray-100"
+          >
+            Payroll
+          </Link>
           <LogoutButton />
         </div>
       </div>
