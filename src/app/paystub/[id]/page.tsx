@@ -37,7 +37,7 @@ export default async function PayStubPage({ params }: { params: Promise<{ id: st
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/");
 
   const { data: me } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   const isEmployer = me?.role === "employer";
