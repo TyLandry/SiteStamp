@@ -39,3 +39,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# supabase cli: local link state and branch metadata (migrations stay tracked)
+supabase/.temp/
+supabase/.branches/
+
+# local design and coding-assistant tool state (per machine, not project code)
+.impeccable/
+.serena/
+.taste-skill/
