@@ -15,7 +15,16 @@ import {
   splitHours,
   startOfWorkWeek,
 } from "@/utils/overtime";
-import { formatTime, mapLink } from "@/utils/format";
+import { formatTime } from "@/utils/format";
+import { mapLinkFor } from "@/utils/geo";
+import {
+  type ClockEntry,
+  type SiteRef,
+  CLOCK_ENTRY_FIELDS,
+  checkEvent,
+  clockPoint,
+  describeCheck,
+} from "@/utils/clockEvents";
 import { Avatar } from "./ui/Marks";
 import { ChevronLeftIcon, ChevronRightIcon } from "./ui/Icons";
 
@@ -34,14 +43,7 @@ type Person = {
   status: string;
 };
 
-type Entry = {
-  id: string;
-  clock_in: string;
-  clock_out: string | null;
-  clock_in_location: string | null;
-  clock_out_location: string | null;
-  profile_id: string;
-};
+type Entry = ClockEntry;
 
 function money(n: number) {
   return n.toLocaleString("en-CA", { style: "currency", currency: "CAD" });
@@ -61,15 +63,26 @@ function shortDateTime(value: string) {
   return `${d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}, ${formatTime(d)}`;
 }
 
-function Location({ value }: { value: string | null }) {
-  if (!value) return <span className="faint">—</span>;
-  const href = mapLink(value);
-  return href ? (
-    <a className="coord underline underline-offset-2" href={href} target="_blank" rel="noopener noreferrer">
-      {value}
-    </a>
-  ) : (
-    <span className="coord">{value}</span>
+const TONE_CLASS: Record<string, string> = { ok: "pill pill-ok", warn: "pill pill-warn", bad: "pill pill-red", neutral: "faint" };
+
+// Where a clock event happened, checked against the chosen site
+function Location({ entry, which, sites }: { entry: Entry; which: "in" | "out"; sites: Map<string, SiteRef> }) {
+  const { point } = clockPoint(entry, which);
+  const check = checkEvent(entry, which, sites);
+  const info = describeCheck(check);
+  if (!point) return <span className="faint small">Location unavailable</span>;
+  const measured = check.status === "outside" || check.status === "uncertain" || check.status === "inside";
+  return (
+    <span className="flex flex-col items-start gap-0.5">
+      <a className="coord underline underline-offset-2" href={mapLinkFor(point)} target="_blank" rel="noopener noreferrer">
+        {point.lat.toFixed(5)}, {point.lng.toFixed(5)}
+      </a>
+      {measured ? (
+        <span className={`${TONE_CLASS[info.tone]} whitespace-normal h-auto py-0.5`}>{info.text}</span>
+      ) : (
+        <span className="small faint">{info.text}</span>
+      )}
+    </span>
   );
 }
 
@@ -79,6 +92,7 @@ export default function EmployerHoursView() {
   const [refDate, setRefDate] = useState(() => new Date());
   const [people, setPeople] = useState<Person[]>([]);
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [sites, setSites] = useState<Map<string, SiteRef>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
@@ -98,7 +112,7 @@ export default function EmployerHoursView() {
     const from = weekStart < period.start ? weekStart : period.start;
     const to = addDays(period.end, 1);
 
-    const [peopleRes, entriesRes] = await Promise.all([
+    const [peopleRes, entriesRes, sitesRes] = await Promise.all([
       supabase
         .from("profiles")
         .select("id, full_name, hourly_wage, employee_type, status")
@@ -106,17 +120,18 @@ export default function EmployerHoursView() {
         .order("full_name"),
       supabase
         .from("time_entries")
-        .select("id, clock_in, clock_out, clock_in_location, clock_out_location, profile_id")
+        .select(CLOCK_ENTRY_FIELDS)
         .gte("clock_in", from.toISOString())
         .lt("clock_in", to.toISOString())
         .order("clock_in", { ascending: false }),
+      supabase.from("job_sites").select("id, name, latitude, longitude, radius_m"),
     ]);
 
-    if (peopleRes.error || entriesRes.error) {
-      setError(peopleRes.error?.message ?? entriesRes.error?.message ?? "Could not load hours.");
-    }
+    const failed = peopleRes.error ?? entriesRes.error ?? sitesRes.error;
+    if (failed) setError(failed.message ?? "Could not load hours.");
     setPeople((peopleRes.data as Person[]) ?? []);
     setEntries((entriesRes.data as Entry[]) ?? []);
+    setSites(new Map(((sitesRes.data ?? []) as SiteRef[]).map((x) => [x.id, x])));
     setLoading(false);
   }
 
@@ -397,16 +412,19 @@ export default function EmployerHoursView() {
                           <div className="small muted">
                             {shortDateTime(e.clock_in)} –{" "}
                             {e.clock_out ? formatTime(e.clock_out) : "still clocked in"}
+                            {e.job_site_id ? ` · ${sites.get(e.job_site_id)?.name ?? "Unknown site"}` : ""}
                           </div>
-                          <div className="small mt-1 flex flex-col gap-0.5">
-                            <span>
+                          <div className="small mt-1 flex flex-col gap-1">
+                            <span className="flex gap-1">
                               <span className="faint">In </span>
-                              <Location value={e.clock_in_location} />
+                              <Location entry={e} which="in" sites={sites} />
                             </span>
-                            <span>
-                              <span className="faint">Out </span>
-                              <Location value={e.clock_out_location} />
-                            </span>
+                            {e.clock_out ? (
+                              <span className="flex gap-1">
+                                <span className="faint">Out </span>
+                                <Location entry={e} which="out" sites={sites} />
+                              </span>
+                            ) : null}
                           </div>
                         </div>
                         <div className="num whitespace-nowrap">
@@ -423,6 +441,7 @@ export default function EmployerHoursView() {
                           <th>Clock in</th>
                           <th>Clock out</th>
                           <th className="num">Hours</th>
+                          <th>Site</th>
                           <th>In location</th>
                           <th>Out location</th>
                         </tr>
@@ -441,10 +460,21 @@ export default function EmployerHoursView() {
                             </td>
                             <td className="num">{e.clock_out ? shiftHours(e).toFixed(2) : <span className="faint">—</span>}</td>
                             <td>
-                              <Location value={e.clock_in_location} />
+                              {e.job_site_id ? (
+                                sites.get(e.job_site_id)?.name ?? "Unknown site"
+                              ) : (
+                                <span className="faint">—</span>
+                              )}
                             </td>
                             <td>
-                              <Location value={e.clock_out_location} />
+                              <Location entry={e} which="in" sites={sites} />
+                            </td>
+                            <td>
+                              {e.clock_out ? (
+                                <Location entry={e} which="out" sites={sites} />
+                              ) : (
+                                <span className="faint">—</span>
+                              )}
                             </td>
                           </tr>
                         ))}

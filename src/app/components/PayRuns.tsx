@@ -5,15 +5,36 @@ import { ChevronLeftIcon, ChevronRightIcon } from "./ui/Icons";
 import { createClient } from "@/utils/supabase/client";
 import { addDays, getPeriod, fmtDate, parseLocalDate, toDateInput } from "@/utils/payPeriods";
 import {
+  type EmployeeReview,
   type OrgSettings,
   type PayRun,
+  type PayRunInput,
   type StubRow,
+  CALC_VERSION,
   DEFAULT_ORG_SETTINGS,
   loadOrgSettings,
   buildStubs,
 } from "@/utils/payRun";
+import PayRunReview from "./PayRunReview";
 
 type Stub = StubRow & { id: string };
+
+// A saved draft no longer matches what the current hours and settings produce
+function draftIsStale(saved: Stub[], fresh: StubRow[]) {
+  if (saved.length !== fresh.length) return true;
+  // Calculated by older rules (e.g. before vacation and holiday pay existed)
+  if (saved.some((s) => s.calc_version !== CALC_VERSION)) return true;
+  const byPerson = new Map(saved.map((s) => [s.profile_id, s]));
+  return fresh.some((f) => {
+    const s = byPerson.get(f.profile_id);
+    return (
+      !s ||
+      Number(s.gross) !== f.gross ||
+      Number(s.net_pay) !== f.net_pay ||
+      Number(s.other_deductions_total) !== f.other_deductions_total
+    );
+  });
+}
 
 function money(n: number) {
   return Number(n).toLocaleString("en-CA", { style: "currency", currency: "CAD" });
@@ -30,6 +51,8 @@ export default function PayRuns() {
   const [selected, setSelected] = useState<PayRun | null>(null);
   const [stubs, setStubs] = useState<Stub[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
+  const [review, setReview] = useState<EmployeeReview[]>([]);
+  const [stale, setStale] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,13 +101,42 @@ export default function PayRuns() {
       String(a.details?.full_name ?? "").localeCompare(String(b.details?.full_name ?? ""))
     );
     setStubs(list);
+    return list;
   }
 
   async function openRun(run: PayRun) {
     setError(null);
     setWarnings([]);
+    setReview([]);
+    setStale(false);
     setSelected(run);
-    await loadStubs(run);
+    const saved = await loadStubs(run);
+    if (run.status !== "draft") return;
+    // Work the draft out again without saving, to show its warnings and
+    // decisions and to spot hours or settings that changed since it was saved
+    setBusy(true);
+    try {
+      const preview = await buildStubs(supabase, run, settings);
+      setWarnings(preview.warnings);
+      setReview(preview.review);
+      setStale(draftIsStale(saved, preview.stubs));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not check this draft.");
+    }
+    setBusy(false);
+  }
+
+  // Save one person's vacation / holiday decisions for this draft, then rebuild it
+  async function saveInput(run: PayRun, input: Omit<PayRunInput, "pay_run_id" | "org_id">) {
+    setError(null);
+    const { error: saveError } = await supabase
+      .from("pay_run_inputs")
+      .upsert({ ...input, pay_run_id: run.id, org_id: run.org_id }, { onConflict: "pay_run_id,profile_id" });
+    if (saveError) {
+      setError(saveError.message);
+      return;
+    }
+    await calculate(run);
   }
 
   // Delete this run's draft stubs and rebuild them from current hours and rates
@@ -92,8 +144,10 @@ export default function PayRuns() {
     setBusy(true);
     setError(null);
     try {
-      const { stubs: built, warnings: w } = await buildStubs(supabase, run, settings);
+      const { stubs: built, warnings: w, review: r } = await buildStubs(supabase, run, settings);
       setWarnings(w);
+      setReview(r);
+      setStale(false);
 
       const { error: delError } = await supabase.from("pay_stubs").delete().eq("pay_run_id", run.id);
       if (delError) throw new Error(delError.message);
@@ -187,6 +241,8 @@ export default function PayRuns() {
       setSelected(null);
       setStubs([]);
       setWarnings([]);
+      setReview([]);
+      setStale(false);
       await loadRuns();
     }
     setBusy(false);
@@ -202,6 +258,17 @@ export default function PayRuns() {
   const employerEi = sum("employer_ei");
   const tax = sum("federal_tax") + sum("provincial_tax");
   const remittance = employeeCpp + employerCpp + employeeEi + employerEi + tax;
+  const otherDeductions = sum("other_deductions_total");
+  const vacationPaid = sum("vacation_pay_paid");
+  const holidayPaid = sum("general_holiday_pay") + sum("holiday_pay_paid");
+
+  // Withheld custom deductions, grouped by name, to pass on to unions / plans
+  const withheld = new Map<string, number>();
+  for (const s of stubs) {
+    for (const d of s.other_deductions ?? []) {
+      withheld.set(d.name, (withheld.get(d.name) ?? 0) + Number(d.amount));
+    }
+  }
 
   if (loading) {
     return (
@@ -348,7 +415,8 @@ export default function PayRuns() {
                 <button
                   type="button"
                   onClick={() => finalize(selected)}
-                  disabled={busy || stubs.length === 0}
+                  disabled={busy || stubs.length === 0 || stale}
+                  title={stale ? "Recalculate first" : undefined}
                   className="btn btn-primary"
                 >
                   Finalize
@@ -356,6 +424,12 @@ export default function PayRuns() {
               </div>
             )}
           </div>
+
+          {stale && selected.status === "draft" && (
+            <p className="notice mx-4 mb-4" role="status">
+              Hours, wages or pay settings changed since this draft was calculated. Recalculate before finalizing.
+            </p>
+          )}
 
           {warnings.length > 0 && (
             <ul className="notice mx-4 mb-4 list-disc pl-8">
@@ -390,8 +464,18 @@ export default function PayRuns() {
                       <div className="small faint">
                         CPP {money(Number(s.cpp) + Number(s.cpp2))} · EI {money(s.ei)} · Tax{" "}
                         {money(Number(s.federal_tax) + Number(s.provincial_tax))}
+                        {Number(s.other_deductions_total) > 0 ? ` · Other ${money(s.other_deductions_total)}` : ""}
                         {Number(s.gst) > 0 ? ` · GST ${money(s.gst)}` : ""}
                       </div>
+                      {Number(s.vacation_pay_paid ?? 0) + Number(s.general_holiday_pay ?? 0) + Number(s.holiday_pay_paid ?? 0) > 0 ? (
+                        <div className="small faint">
+                          Includes
+                          {Number(s.general_holiday_pay ?? 0) + Number(s.holiday_pay_paid ?? 0) > 0
+                            ? ` holiday pay ${money(Number(s.general_holiday_pay ?? 0) + Number(s.holiday_pay_paid ?? 0))}`
+                            : ""}
+                          {Number(s.vacation_pay_paid ?? 0) > 0 ? ` vacation pay ${money(Number(s.vacation_pay_paid))}` : ""}
+                        </div>
+                      ) : null}
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       <span className="font-semibold num">{money(s.net_pay)}</span>
@@ -411,10 +495,13 @@ export default function PayRuns() {
                       <th>Name</th>
                       <th className="num">Reg hrs</th>
                       <th className="num">OT hrs</th>
+                      <th className="num">Holiday</th>
+                      <th className="num">Vacation</th>
                       <th className="num">Gross</th>
                       <th className="num">CPP</th>
                       <th className="num">EI</th>
                       <th className="num">Tax</th>
+                      <th className="num">Other</th>
                       <th className="num">GST</th>
                       <th className="num">Net pay</th>
                       <th>
@@ -431,10 +518,23 @@ export default function PayRuns() {
                         </td>
                         <td className="num">{Number(s.regular_hours).toFixed(2)}</td>
                         <td className="num">{Number(s.overtime_hours).toFixed(2)}</td>
+                        <td className="num">
+                          {Number(s.general_holiday_pay ?? 0) + Number(s.holiday_pay_paid ?? 0) > 0 ? (
+                            money(Number(s.general_holiday_pay ?? 0) + Number(s.holiday_pay_paid ?? 0))
+                          ) : (
+                            <span className="faint">—</span>
+                          )}
+                        </td>
+                        <td className="num">
+                          {Number(s.vacation_pay_paid ?? 0) > 0 ? money(Number(s.vacation_pay_paid)) : <span className="faint">—</span>}
+                        </td>
                         <td className="num">{money(s.gross)}</td>
                         <td className="num">{money(Number(s.cpp) + Number(s.cpp2))}</td>
                         <td className="num">{money(s.ei)}</td>
                         <td className="num">{money(Number(s.federal_tax) + Number(s.provincial_tax))}</td>
+                        <td className="num">
+                          {Number(s.other_deductions_total) > 0 ? money(s.other_deductions_total) : <span className="faint">—</span>}
+                        </td>
                         <td className="num">{Number(s.gst) > 0 ? money(s.gst) : <span className="faint">—</span>}</td>
                         <td className="num font-semibold">{money(s.net_pay)}</td>
                         <td className="num">
@@ -446,10 +546,13 @@ export default function PayRuns() {
                     ))}
                     <tr className="total">
                       <td colSpan={3}>Total</td>
+                      <td className="num">{money(holidayPaid)}</td>
+                      <td className="num">{money(vacationPaid)}</td>
                       <td className="num">{money(totalGross)}</td>
                       <td className="num">{money(employeeCpp)}</td>
                       <td className="num">{money(employeeEi)}</td>
                       <td className="num">{money(tax)}</td>
+                      <td className="num">{money(otherDeductions)}</td>
                       <td className="num">{money(sum("gst"))}</td>
                       <td className="num">{money(totalNet)}</td>
                       <td />
@@ -472,10 +575,30 @@ export default function PayRuns() {
                   </span>
                 </div>
               </div>
+              {withheld.size > 0 ? (
+                <div className="title-block flex-col">
+                  <span>
+                    <b>Other deductions withheld {money(otherDeductions)}</b>: not a CRA remittance. Send union dues and
+                    plan premiums on to the union or plan; loan repayments stay with the company.
+                  </span>
+                  <span>
+                    {[...withheld].map(([name, amount]) => `${name} ${money(amount)}`).join(" · ")}
+                  </span>
+                </div>
+              ) : null}
             </>
           )}
         </section>
       )}
+
+      {selected?.status === "draft" && review.length > 0 ? (
+        <PayRunReview
+          run={selected}
+          review={review}
+          busy={busy}
+          onSave={(input) => saveInput(selected, input)}
+        />
+      ) : null}
     </div>
   );
 }

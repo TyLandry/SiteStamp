@@ -424,6 +424,16 @@
     cursor: pointer;
   }
   .tabs button[aria-selected="true"] { color: var(--text); font-weight: 600; border-bottom-color: var(--text); }
+  .tabs a {
+    padding: 10px 0;
+    margin-bottom: -1px;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+  .tabs a:hover { color: var(--text); }
+  .tabs a[aria-current="page"] { color: var(--text); font-weight: 600; border-bottom-color: var(--text); }
   .stat { display: flex; flex-direction: column; gap: 2px; padding: 12px var(--card-pad); }
   .stat .v { font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: -0.01em; }
   @media (max-width: 640px) {
@@ -565,6 +575,38 @@
   @media (min-width: 1024px) {
     .account-phone { display: none; }
   }
+
+  /* ---------- maps ---------- */
+  .map-box {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+    background: var(--raised);
+    /* Leaflet panes use z-indexes up to 1000; keep them under the app's bars */
+    position: relative;
+    z-index: 0;
+  }
+  .map-site span {
+    display: block;
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    background: var(--bar);
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px var(--bar);
+  }
+  .map-pin span {
+    display: block;
+    width: 22px;
+    height: 22px;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    background: var(--red);
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(28, 40, 48, 0.35);
+  }
+  .leaflet-container { font-family: var(--font-sans); font-size: 12px; }
 
   /* ---------- settings layout: label column beside its panel ---------- */
   .setting {

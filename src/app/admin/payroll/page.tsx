@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import PayRuns from "../../components/PayRuns";
+import PayrollTabs from "../../components/PayrollTabs";
 
 export const metadata: Metadata = { title: "Payroll" };
 
@@ -28,6 +29,7 @@ export default async function PayrollPage() {
           <p className="finding">Pay runs, deductions and what to send the CRA.</p>
         </div>
       </div>
+      <PayrollTabs />
       <PayRuns />
     </>
   );

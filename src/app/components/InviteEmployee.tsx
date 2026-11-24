@@ -1,6 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { toDateInput } from "@/utils/payPeriods";
+import {
+  MINIMUM_WAGE,
+  STUDENT_MINIMUM_WAGE,
+  lowestAllowedWage,
+  minimumWageMessage,
+} from "@/utils/minimumWage";
 
 export default function InviteEmployee() {
   const [email, setEmail] = useState("");
@@ -10,14 +17,30 @@ export default function InviteEmployee() {
   );
   const [hourlyWage, setHourlyWage] = useState("");
   const [gstNumber, setGstNumber] = useState("");
+  const [isStudent, setIsStudent] = useState(false);
+  const [studentUntil, setStudentUntil] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const isEmployee = employeeType === "employee";
+  const studentRateUntil = isEmployee && isStudent ? studentUntil : null;
 
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setMessage(null);
+
+    // Alberta minimum wage for employees; the server checks again
+    const today = toDateInput(new Date());
+    if (isEmployee && isStudent && (!studentUntil || studentUntil <= today)) {
+      setError("Enter when the student rate ends (their 18th birthday, or when they leave school). It must be after today.");
+      return;
+    }
+    if (isEmployee && hourlyWage.trim() !== "" && Number(hourlyWage) < lowestAllowedWage(studentRateUntil, today)) {
+      setError(minimumWageMessage(studentRateUntil));
+      return;
+    }
     setLoading(true);
 
     const res = await fetch("/api/invite", {
@@ -29,6 +52,7 @@ export default function InviteEmployee() {
         employeeType,
         hourlyWage,
         gstNumber,
+        studentRateUntil,
       }),
     });
 
@@ -43,6 +67,8 @@ export default function InviteEmployee() {
       setEmployeeType("employee");
       setHourlyWage("");
       setGstNumber("");
+      setIsStudent(false);
+      setStudentUntil("");
     }
     setLoading(false);
   }
@@ -104,14 +130,41 @@ export default function InviteEmployee() {
                 className="input"
                 type="number"
                 inputMode="decimal"
-                min="0"
+                min={isEmployee ? (isStudent ? STUDENT_MINIMUM_WAGE : MINIMUM_WAGE) : 0}
                 step="0.01"
                 value={hourlyWage}
                 onChange={(e) => setHourlyWage(e.target.value)}
               />
             </div>
+            {isEmployee ? (
+              <span className="hint">
+                Minimum ${(isStudent ? STUDENT_MINIMUM_WAGE : MINIMUM_WAGE).toFixed(2)}/h
+              </span>
+            ) : null}
           </div>
         </div>
+        {isEmployee ? (
+          <div className="flex flex-col gap-3">
+            <label className="check font-normal items-start">
+              <input type="checkbox" checked={isStudent} onChange={(e) => setIsStudent(e.target.checked)} />
+              <span>Student under 18, enrolled in school (student minimum ${STUDENT_MINIMUM_WAGE.toFixed(2)}/h)</span>
+            </label>
+            {isStudent ? (
+              <div className="field">
+                <label htmlFor="invite-student-until">Student rate ends on</label>
+                <input
+                  id="invite-student-until"
+                  className="input"
+                  type="date"
+                  min={toDateInput(new Date())}
+                  value={studentUntil}
+                  onChange={(e) => setStudentUntil(e.target.value)}
+                />
+                <span className="hint">Their 18th birthday, or when they leave school if that&apos;s sooner.</span>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
         {employeeType === "subcontractor" && (
           <div className="field">
             <label htmlFor="invite-gst">GST number</label>

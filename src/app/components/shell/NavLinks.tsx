@@ -6,11 +6,12 @@ import {
   ClockIcon,
   CrewIcon,
   PayrollIcon,
+  PinIcon,
   SettingsIcon,
   TodayIcon,
 } from "../ui/Icons";
 
-export type NavIcon = "today" | "hours" | "crew" | "payroll" | "settings";
+export type NavIcon = "today" | "hours" | "crew" | "payroll" | "sites" | "settings";
 
 export type NavItem = {
   href: string;
@@ -28,6 +29,7 @@ const ICONS: Record<NavIcon, React.ComponentType> = {
   hours: ClockIcon,
   crew: CrewIcon,
   payroll: PayrollIcon,
+  sites: PinIcon,
   settings: SettingsIcon,
 };
 

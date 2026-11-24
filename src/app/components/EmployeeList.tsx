@@ -2,6 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
+import { fmtDate, parseLocalDate, toDateInput } from "@/utils/payPeriods";
+import {
+  MINIMUM_WAGE,
+  STUDENT_MINIMUM_WAGE,
+  STUDENT_WEEKLY_HOURS,
+  lowestAllowedWage,
+  minimumWageMessage,
+  studentRateApplies,
+} from "@/utils/minimumWage";
 import { Avatar } from "./ui/Marks";
 
 type Employee = {
@@ -15,6 +24,7 @@ type Employee = {
   employee_type: "employee" | "subcontractor";
   status: "active" | "terminated";
   terminated_at: string | null;
+  student_rate_until: string | null;
 };
 
 function money(n: number) {
@@ -45,6 +55,8 @@ export default function EmployeeList() {
   const [td1Mode, setTd1Mode] = useState<"basic" | "zero" | "custom">("basic");
   const [fedClaimInput, setFedClaimInput] = useState("");
   const [provClaimInput, setProvClaimInput] = useState("");
+  const [isStudent, setIsStudent] = useState(false);
+  const [studentUntil, setStudentUntil] = useState("");
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +69,7 @@ export default function EmployeeList() {
     const { data, error: loadError } = await supabase
       .from("profiles")
       .select(
-        "id, full_name, hourly_wage, extra_tax_per_pay, td1_mode, tax_claim_amount, tax_claim_provincial, employee_type, status, terminated_at"
+        "id, full_name, hourly_wage, extra_tax_per_pay, td1_mode, tax_claim_amount, tax_claim_provincial, employee_type, status, terminated_at, student_rate_until"
       )
       .eq("role", "employee")
       .order("full_name");
@@ -91,6 +103,8 @@ export default function EmployeeList() {
     setProvClaimInput(
       employee.tax_claim_provincial != null ? String(Number(employee.tax_claim_provincial)) : ""
     );
+    setIsStudent(employee.student_rate_until != null);
+    setStudentUntil(employee.student_rate_until ?? "");
   }
 
   function cancelEdit() {
@@ -101,9 +115,22 @@ export default function EmployeeList() {
   }
 
   async function saveEdit(emp: Employee) {
+    const isSub = emp.employee_type === "subcontractor";
     const wage = parseFloat(wageInput);
     if (wageInput.trim() === "" || Number.isNaN(wage) || wage < 0) {
       setError("Enter a valid wage (0 or more).");
+      return;
+    }
+
+    // Alberta minimum wage (employees only): $15, or $13 for a student under 18
+    const today = toDateInput(new Date());
+    const studentRateUntil = !isSub && isStudent ? studentUntil : null;
+    if (!isSub && isStudent && (!studentUntil || studentUntil <= today)) {
+      setError("Enter when the student rate ends (their 18th birthday, or when they leave school). It must be after today.");
+      return;
+    }
+    if (!isSub && wage < lowestAllowedWage(studentRateUntil, today)) {
+      setError(minimumWageMessage(studentRateUntil));
       return;
     }
 
@@ -141,6 +168,7 @@ export default function EmployeeList() {
         td1_mode: emp.employee_type === "subcontractor" ? "basic" : td1Mode,
         tax_claim_amount: fedClaim,
         tax_claim_provincial: provClaim,
+        student_rate_until: studentRateUntil,
       })
       .eq("id", emp.id);
 
@@ -205,11 +233,17 @@ export default function EmployeeList() {
                 type="number"
                 inputMode="decimal"
                 step="0.01"
-                min="0"
+                min={isSub ? 0 : isStudent ? STUDENT_MINIMUM_WAGE : MINIMUM_WAGE}
                 value={wageInput}
                 onChange={(e) => setWageInput(e.target.value)}
               />
             </div>
+            {!isSub ? (
+              <span className="hint">
+                Alberta minimum ${(isStudent ? STUDENT_MINIMUM_WAGE : MINIMUM_WAGE).toFixed(2)}/h
+                {isStudent ? " (student)" : ""}
+              </span>
+            ) : null}
           </div>
           {!isSub ? (
             <>
@@ -285,6 +319,35 @@ export default function EmployeeList() {
             </>
           ) : null}
         </div>
+        {!isSub ? (
+          <div className="mt-3 flex flex-col gap-3">
+            <label className="check font-normal items-start">
+              <input type="checkbox" checked={isStudent} onChange={(e) => setIsStudent(e.target.checked)} />
+              <span>
+                Student under 18, enrolled in school. Alberta allows ${STUDENT_MINIMUM_WAGE.toFixed(2)}/h during school
+                breaks and for the first {STUDENT_WEEKLY_HOURS} hours of a school week; payroll pays at least $
+                {MINIMUM_WAGE.toFixed(2)}/h for hours past that.
+              </span>
+            </label>
+            {isStudent ? (
+              <div className="field max-w-xs">
+                <label htmlFor={`student-${emp.id}`}>Student rate ends on</label>
+                <input
+                  id={`student-${emp.id}`}
+                  className="input"
+                  type="date"
+                  min={toDateInput(new Date())}
+                  value={studentUntil}
+                  onChange={(e) => setStudentUntil(e.target.value)}
+                />
+                <span className="hint">
+                  Their 18th birthday, or the day they leave school if that&apos;s sooner. From then on the minimum is $
+                  {MINIMUM_WAGE.toFixed(2)}/h.
+                </span>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
         {error ? (
           <p className="msg-error mt-3" role="alert">
             {error}
@@ -387,7 +450,16 @@ export default function EmployeeList() {
                             : isClockedIn
                               ? "On the clock"
                               : "Active"}
+                          {!isSub && studentRateApplies(emp.student_rate_until, toDateInput(new Date()))
+                            ? ` · Student rate until ${fmtDate(parseLocalDate(emp.student_rate_until!))}`
+                            : ""}
                         </small>
+                        {!isSub &&
+                        !isTerminatedList &&
+                        emp.hourly_wage != null &&
+                        Number(emp.hourly_wage) < lowestAllowedWage(emp.student_rate_until) ? (
+                          <span className="pill pill-red mt-1">Below Alberta minimum wage</span>
+                        ) : null}
                       </div>
                     </div>
                     <div className="sm:hidden text-right font-semibold num whitespace-nowrap">

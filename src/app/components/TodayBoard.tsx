@@ -24,7 +24,7 @@ type Entry = {
   profile_id: string;
   clock_in: string;
   clock_out: string | null;
-  clock_in_location: string | null;
+  clock_in_lat: number | null;
 };
 
 type TimeOff = {
@@ -59,7 +59,7 @@ async function loadBoard(supabase: SupabaseClient, today: Date): Promise<Board> 
     settings?.work_week_start ?? DEFAULT_OVERTIME_SETTINGS.work_week_start
   );
 
-  const entryFields = "id, profile_id, clock_in, clock_out, clock_in_location";
+  const entryFields = "id, profile_id, clock_in, clock_out, clock_in_lat";
   const [peopleRes, weekRes, openRes, requestsRes] = await Promise.all([
     supabase
       .from("profiles")
@@ -240,7 +240,7 @@ export default function TodayBoard() {
       });
       const open = mine.find((e) => !e.clock_out) ?? null;
       const ms = mine.reduce((sum, e) => sum + overlapMs(e, today, tomorrow, now), 0);
-      const noLocation = mine.some((e) => !e.clock_in_location);
+      const noLocation = mine.some((e) => e.clock_in_lat == null);
       return { person: p, spans, open, ms, noLocation };
     });
   // A shift left open from an earlier day is drawn from the left edge with its

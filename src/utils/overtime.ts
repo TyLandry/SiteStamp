@@ -55,6 +55,8 @@ export function splitHours(
   let overtime = 0;
   let currentWeek = "";
   let weekRegular = 0;
+  // Per-day split for days inside the period ("YYYY-MM-DD", in date order)
+  const days: { date: string; regular: number; overtime: number }[] = [];
 
   for (const key of [...byDay.keys()].sort()) {
     const day = parseLocalDate(key);
@@ -79,8 +81,9 @@ export function splitHours(
     if (day >= periodStart && day <= periodEnd) {
       regular += reg;
       overtime += hours - reg;
+      days.push({ date: key, regular: reg, overtime: hours - reg });
     }
   }
 
-  return { regular, overtime };
+  return { regular, overtime, days };
 }

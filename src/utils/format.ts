@@ -49,14 +49,6 @@ export function personTint(id: string) {
   return TINTS[hash % TINTS.length];
 }
 
-/** Google Maps link for a stored "lat, lng" string, or null when it isn't one. */
-export function mapLink(location: string | null) {
-  if (!location) return null;
-  const match = location.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
-  if (!match) return null;
-  return `https://www.google.com/maps/search/?api=1&query=${match[1]},${match[2]}`;
-}
-
 /** Start of the viewer's local day. */
 export function startOfDay(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());

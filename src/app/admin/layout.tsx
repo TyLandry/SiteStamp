@@ -14,6 +14,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
     { href: "/admin/hours", label: "Hours & pay", shortLabel: "Hours", icon: "hours" },
     { href: "/admin/staff", label: "Crew & wages", shortLabel: "Crew", icon: "crew" },
     { href: "/admin/payroll", label: "Payroll", icon: "payroll" },
+    { href: "/admin/sites", label: "Job sites", shortLabel: "Sites", icon: "sites" },
     { href: "/admin/settings", label: "Settings", icon: "settings" },
   ];
 
